@@ -23,9 +23,10 @@ EffOne predicts F1 qualifying and races for the current season (win, podium and 
 5. **Circuit-history rule:** past races at a circuit count toward track-specific features only if at least 25% of the current grid's drivers raced there that year. Otherwise fall back to circuit-type features with shrinkage.
 6. **Refreshes are incremental.** The scheduled job updates features and ratings and reruns simulations. It must not do a full retrain. Full retrains are manual.
 7. **Ingestion must be idempotent and resumable.** Cache fastf1 data, retry on incomplete sessions, and make reruns add nothing new.
-8. **Output probabilities, not single picks.** Use Monte Carlo and check calibration.
-9. **Log predictions before the race** and score them afterwards.
-10. Strategy (pit stops) and safety-car prediction are out of scope until the user says otherwise.
+8. **Try many models, judge them fairly.** Implement the model zoo in `HANDOFF.md` section 3 behind one shared interface so each runs through the same walk-forward harness and appears on one leaderboard. Lock the latest complete season as a final test set, evaluate it once after choosing, and report all models, not just the best.
+9. **Output probabilities, not single picks.** Use Monte Carlo and check calibration.
+10. **Log predictions before the race** and score them afterwards.
+11. Strategy (pit stops) and safety-car prediction are out of scope until the user says otherwise.
 
 ## AWS and cost safety
 

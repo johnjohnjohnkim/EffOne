@@ -37,10 +37,16 @@ A full-stack F1 prediction app, focused on the **current season** and updating a
 - Every feature for a race uses only data available before that session. Test for leakage.
 - Predict relative quantities (gap to field, team-relative pace). Regulation eras reset absolute times.
 - Weight the current season heavily with recency decay. Early in the season, shrink toward last year's form and show lower confidence.
-- Start simple and require each step to beat the last on held-out seasons:
-  1. baseline "grid = finish" and "previous race = finish"
-  2. regularised LightGBM (shallow trees)
-  3. ranking or Bayesian model (e.g. Plackett-Luce) only if it earns its place
+- **Run a broad model zoo** (the user wants to learn; compute is not a constraint, data is small so CPU training is cheap). Every model goes through the same walk-forward harness and is reported on one leaderboard:
+  1. baselines: "grid = finish", "previous race = finish"
+  2. linear: ridge, elastic net, logistic regression
+  3. trees: random forest, extra trees, LightGBM, XGBoost, CatBoost (keep trees shallow and regularised)
+  4. ranking: LightGBM LambdaRank, XGBoost pairwise ranking, Plackett-Luce / Bradley-Terry
+  5. rating systems: Elo / TrueSkill for drivers and teams
+  6. Bayesian hierarchical model (driver effect + car effect + circuit effect); a strong candidate for F1
+  7. neural: MLP, then a small network with driver/team/circuit embeddings (PyTorch)
+  8. ensembles: simple averaging, then stacking
+- **Selection-bias guard:** many models tuned against the same seasons give optimistic scores. Choose models by walk-forward CV on earlier seasons, and **lock the most recent complete season as a final test set that is evaluated once**, after the model choice is frozen. Report every model, not only the winner. Prefer a simpler model when scores are within noise.
 - Output **distributions** (Monte Carlo over model scores plus DNF risk), not a single order.
 - Check calibration with reliability curves.
 - The grid is an input feature; the race model must not just copy it.
@@ -127,3 +133,5 @@ Weather: Open-Meteo forecast for the circuit (no key). The user can override for
 - 2026-10-07: Requirements gathered, plan written. `D:\repos\EffOne` is empty apart from these docs and is not yet a git repository. Python 3.14.3, Node 24 and git 2.53 are installed. `fastf1` is not installed. Next step: phase 0.
 - 2026-10-07: **Phase 0 done.** Git repo initialised (branch `main`, no commits yet). `uv` installed via pip (invoke as `python -m uv`). Python 3.12 pinned, `.venv` created, deps installed: fastf1, pandas, numpy, pyarrow, scikit-learn, lightgbm; dev: pytest, ruff. `ml/` skeleton (ingest, features, models, evaluation, simulation) and `tests/test_smoke.py` exist; pytest and ruff pass. Note: always `Set-Location D:\repos\EffOne` in the same command before running `uv`; the shell can reset to `D:\repos`. Next step: phase 1 (incremental ingestion of 2018 to present into Parquet).
 - 2026-10-07: **Phase 1 ingestion code written and started** (not yet verified complete). `python -m uv run python -m ml.ingest [--years ...] [--sessions Race Qualifying] [--limit N]` ingests all finished sessions (practice, qualifying, sprint, race) with tables `results`, `laps`, `weather`, `track_status` into `data/raw/<table>/year=YYYY/round=RR/<session>.parquet`. Sessions are marked done in `data/raw/_done/`; reruns skip them and retry failures (also waits 6h after a session ends). All data and the fastf1 cache are under `D:\repos\EffOne\data` (C: has about 8 GB free, so keep it there; `EFFONE_DATA_DIR` overrides). Full backfill was launched in the background, logging to `data/ingest.log`; about 4 MB of cache per session. Still to do for phase 1: check row counts against known race and driver counts, add tests, add `circuits`, `drivers`, `teams` tables and the 25% circuit-history rule. The uv package cache is still on C:; set `UV_CACHE_DIR` to a D: path if it grows.
+- 2026-10-08: **Phase 2 done** (evaluation harness and baselines). `python -m uv run python -m ml.evaluation` prints and saves `data/reports/leaderboard.csv`; 8 tests pass. Baselines on 99 races (2019 to 2023 test seasons, partial data): grid = finish has Spearman 0.602 and winner accuracy 0.515; previous race = finish has 0.444 and 0.394. Locked final test season is 2025 and untouched. New models must implement `fit(train)` and `predict_race(history, race)` (see `ml/evaluation/baselines.py`). The ingestion backfill is still running; rerun the leaderboard when it finishes. Next step: phase 3 (leakage-safe features).
+- 2026-10-08: Resolved the 2018 R14 (Italian GP) Race ingestion failure. fastf1 loads its results (20 rows), weather and track status but has no laps for that session, and `ingest_session` used to fail the whole session on any missing table. Now only `results` is required; other missing tables are written as empty and listed under `"missing"` in the done-marker (here `["laps"]`). Any feature that uses lap data must handle this race having no laps.

@@ -28,7 +28,7 @@ Planned for later: pit-stop strategy and safety-car prediction.
 |---|---|---|
 | 0 | Project setup (Python 3.12, tooling, tests) | Done |
 | 1 | Data ingestion, 2018 to present | **In progress** (code written, backfill running; rate-limited) |
-| 2 | Evaluation harness and baselines | Not started |
+| 2 | Evaluation harness and baselines | Done |
 | 3 | Leakage-safe features | Not started |
 | 4 | Qualifying model | Not started |
 | 5 | Race model (predicted or user grid) | Not started |
@@ -78,6 +78,13 @@ python -m uv run python -m ml.ingest
 
 # a subset
 python -m uv run python -m ml.ingest --years 2024 --sessions Race Qualifying
+```
+
+### Evaluate
+
+```powershell
+# score the baselines with walk-forward validation; writes data/reports/leaderboard.csv
+python -m uv run python -m ml.evaluation
 ```
 
 - Output goes to `data/raw/<table>/year=YYYY/round=RR/<session>.parquet`, with tables `results`, `laps`, `weather` and `track_status`.

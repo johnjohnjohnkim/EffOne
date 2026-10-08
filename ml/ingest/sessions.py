@@ -7,10 +7,11 @@ A session is complete once <data>/raw/_done/<year>_<round>_<session>.json exists
 import json
 import logging
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import fastf1
 import pandas as pd
+from fastf1.exceptions import DataNotLoadedError
 
 from ml.ingest.paths import cache_dir, raw_dir
 
@@ -53,17 +54,35 @@ def ingest_session(year: int, rnd: int, session_name: str) -> dict:
     """Load one session and write its tables. Marks it done only if everything was written."""
     session = fastf1.get_session(year, rnd, session_name)
     session.load(laps=True, telemetry=False, weather=True, messages=False)
-    tables = {
-        "results": session.results,
-        "laps": session.laps,
-        "weather": session.weather_data,
-        "track_status": session.track_status,
+    # Some sessions lack a table in the source feed (e.g. 2018 R14 has no laps). Results are
+    # required; any other missing table is recorded in the done-marker instead of failing.
+    getters = {
+        "results": lambda: session.results,
+        "laps": lambda: session.laps,
+        "weather": lambda: session.weather_data,
+        "track_status": lambda: session.track_status,
     }
-    counts = {name: _write(df, name, year, rnd, session_name) for name, df in tables.items()}
+    counts, missing = {}, []
+    for name, get in getters.items():
+        try:
+            counts[name] = _write(get(), name, year, rnd, session_name)
+        except DataNotLoadedError:
+            if name == "results":
+                raise
+            counts[name] = 0
+            missing.append(name)
     if counts["results"] == 0:
         raise RuntimeError(f"{year} R{rnd} {session_name}: no results yet, will retry later")
+    if missing:
+        log.warning("%s R%s %s: missing tables %s", year, rnd, session_name, missing)
     _done_path(year, rnd, session_name).write_text(
-        json.dumps({"counts": counts, "ingested_at": datetime.now(timezone.utc).isoformat()})
+        json.dumps(
+            {
+                "counts": counts,
+                "missing": missing,
+                "ingested_at": datetime.now(UTC).isoformat(),
+            }
+        )
     )
     return counts
 
@@ -72,7 +91,7 @@ def pending_sessions(year: int, only: set[str] | None = None) -> list[tuple[int,
     """Finished, not-yet-ingested sessions for a season, as (round, session name)."""
     fastf1.Cache.enable_cache(str(cache_dir()))
     schedule = fastf1.get_event_schedule(year, include_testing=False)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     pending = []
     for _, event in schedule.iterrows():
         rnd = int(event["RoundNumber"])

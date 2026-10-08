@@ -3,7 +3,8 @@
 import argparse
 import logging
 import time
-from datetime import date
+from datetime import UTC, datetime
+from functools import partial
 
 import fastf1
 from fastf1.exceptions import RateLimitExceededError
@@ -28,8 +29,12 @@ def with_rate_limit_wait(fn):
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--years", type=int, nargs="+", default=list(range(2018, date.today().year + 1)))
-    parser.add_argument("--sessions", nargs="+", help='Session names, e.g. Race Qualifying "Practice 2"')
+    parser.add_argument(
+        "--years", type=int, nargs="+", default=list(range(2018, datetime.now(UTC).year + 1))
+    )
+    parser.add_argument(
+        "--sessions", nargs="+", help='Session names, e.g. Race Qualifying "Practice 2"'
+    )
     parser.add_argument("--limit", type=int, help="Stop after N sessions (for testing)")
     args = parser.parse_args()
 
@@ -40,17 +45,17 @@ def main() -> int:
     only = set(args.sessions) if args.sessions else None
     done = failed = 0
     for year in args.years:
-        todo = with_rate_limit_wait(lambda: pending_sessions(year, only))
+        todo = with_rate_limit_wait(partial(pending_sessions, year, only))
         log.info("%s: %d sessions to ingest", year, len(todo))
         for rnd, name in todo:
             if args.limit and done >= args.limit:
                 log.info("limit reached")
                 return 0
             try:
-                counts = with_rate_limit_wait(lambda: ingest_session(year, rnd, name))
+                counts = with_rate_limit_wait(partial(ingest_session, year, rnd, name))
                 done += 1
                 log.info("%s R%02d %s ok %s", year, rnd, name, counts)
-            except Exception as exc:  # keep going; the session is retried on the next run
+            except Exception as exc:  # noqa: BLE001 - keep going; the session is retried next run
                 failed += 1
                 log.warning("%s R%02d %s FAILED: %s", year, rnd, name, exc)
                 time.sleep(2)
