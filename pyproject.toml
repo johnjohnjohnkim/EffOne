@@ -21,6 +21,7 @@ package = false
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
+markers = ["realdata: reads the real ingested data directory; skipped on a fresh clone"]
 
 [tool.ruff]
 line-length = 100

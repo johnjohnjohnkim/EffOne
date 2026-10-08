@@ -27,7 +27,7 @@ Planned for later: pit-stop strategy and safety-car prediction.
 | Phase | Description | Status |
 |---|---|---|
 | 0 | Project setup (Python 3.12, tooling, tests) | Done |
-| 1 | Data ingestion, 2018 to present | **In progress** (code written, backfill running; rate-limited) |
+| 1 | Data ingestion, 2018 to present | Done for races, qualifying and sprints (practice sessions still downloading) |
 | 2 | Evaluation harness and baselines | Done |
 | 3 | Leakage-safe features | Not started |
 | 4 | Qualifying model | Not started |
@@ -78,7 +78,22 @@ python -m uv run python -m ml.ingest
 
 # a subset
 python -m uv run python -m ml.ingest --years 2024 --sessions Race Qualifying
+
+# what is still missing? lists pending sessions, downloads none; exit code 1 if any are pending
+python -m uv run python -m ml.ingest --dry-run --sessions Race Qualifying Sprint "Sprint Qualifying" "Sprint Shootout"
+
+# the race calendar (needed for circuits), lookup tables, and a data-quality report
+python -m uv run python -m ml.ingest.events
+python -m uv run python -m ml.ingest.dimensions     # data/dim/{drivers,teams,circuits}.parquet
+python -m uv run python -m ml.ingest.audit          # data/reports/data_quality.csv
 ```
+
+- Output goes to `data/raw/<table>/year=YYYY/round=RR/<session>.parquet`, with tables `results`, `laps`, `weather` and `track_status`, plus `data/raw/events/` for the calendar.
+- Ingestion is **idempotent**: finished sessions are recorded in `data/raw/_done/` and skipped on rerun. Failed sessions are retried. All writes are atomic (temp file, then rename).
+- A table the source lacks is only accepted for sessions on the explicit allow-list in `ml/ingest/sessions.py` (`KNOWN_MISSING`, currently the 2018 Italian GP laps); anything else fails and is retried.
+- fastf1 allows 500 API calls per hour, so a full backfill takes many hours. The job waits and resumes by itself when the limit is hit.
+- Data and the fastf1 cache live in `data/` (git-ignored). Set `EFFONE_DATA_DIR` to store them elsewhere, for example on a different drive.
+- The audit flags problems per session and sets `results_ok` / `laps_ok`; it never deletes anything.
 
 ### Evaluate
 
@@ -87,10 +102,14 @@ python -m uv run python -m ml.ingest --years 2024 --sessions Race Qualifying
 python -m uv run python -m ml.evaluation
 ```
 
-- Output goes to `data/raw/<table>/year=YYYY/round=RR/<session>.parquet`, with tables `results`, `laps`, `weather` and `track_status`.
-- Ingestion is **idempotent**: finished sessions are recorded in `data/raw/_done/` and skipped on rerun. Failed sessions are retried.
-- fastf1 allows 500 API calls per hour, so the full backfill takes many hours. The job waits and resumes by itself when the limit is hit.
-- Data and the fastf1 cache live in `data/` (git-ignored). Set `EFFONE_DATA_DIR` to store them elsewhere, for example on a different drive.
+### Tests
+
+```powershell
+python -m uv run pytest                    # all tests
+python -m uv run pytest -m "not realdata"  # only tests that need no ingested data
+```
+
+Tests marked `realdata` read the real `data/` directory and are skipped on a fresh clone. While the backfill is incomplete they fail on purpose.
 
 ## Repository layout
 

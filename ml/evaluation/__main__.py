@@ -9,6 +9,7 @@ from ml.evaluation.data import load_race_results
 from ml.evaluation.harness import evaluate
 from ml.evaluation.metrics import summarize
 from ml.evaluation.splits import LOCKED_SEASON
+from ml.ingest.atomic import write_csv_atomic
 from ml.ingest.paths import data_dir
 
 
@@ -30,9 +31,8 @@ def main() -> int:
     board = summarize(per_race)
 
     out = data_dir() / "reports"
-    out.mkdir(exist_ok=True)
-    board.to_csv(out / "leaderboard.csv", index=False)
-    per_race.to_csv(out / "per_race.csv", index=False)
+    write_csv_atomic(board, out / "leaderboard.csv", index=False)
+    write_csv_atomic(per_race, out / "per_race.csv", index=False)
 
     with pd.option_context("display.float_format", "{:.3f}".format, "display.width", 140):
         print(board[board["Year"] == "all"].drop(columns="Year").to_string(index=False))

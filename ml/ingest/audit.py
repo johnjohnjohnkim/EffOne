@@ -2,22 +2,29 @@
 
 python -m ml.ingest.audit  ->  data/reports/data_quality.csv plus a printed list of flagged sessions.
 
-Nothing is deleted. Raw files stay as downloaded; the report says which sessions are fit for
-results-based features and which for lap-based features, and later phases filter on it.
+Nothing in data/raw is changed or deleted. The report says which sessions are fit for
+results-based features (`results_ok`) and lap-based features (`laps_ok`); later phases filter on it.
 """
 
 import json
+from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
+from ml.ingest.atomic import write_csv_atomic
 from ml.ingest.paths import data_dir, raw_dir
 
-# Thresholds are deliberately loose; the goal is to surface real gaps, not normal variation.
-MIN_RESULT_ROWS, MAX_RESULT_ROWS = 18, 24
+# Grids have been 20 cars (2018-2025) and 22 from 2026. The range is wide enough for stand-ins but
+# tight enough to catch duplicated or truncated results.
+MIN_RESULT_ROWS, MAX_RESULT_ROWS = 18, 22
 # Only races and sprints are expected to have a time for nearly every lap. Qualifying and
 # practice legitimately contain many untimed out-, in- and aborted laps, so they are not
-# checked for this.
-MAX_NULL_LAPTIME_FRAC = 0.05
+# checked for this. Lap 1 is ignored: in sprints it is untimed for every driver (1 of ~19 laps).
+# Above SOFT, some laps are untimed (red-flag laps, for example); that is informational, since
+# lap-based features can drop those laps one by one. Above HARD the lap data is unusable.
+SOFT_NULL_LAPTIME_FRAC = 0.05
+HARD_NULL_LAPTIME_FRAC = 0.25
 MAX_NULL_POSITION_FRAC = 0.2
 
 RESULT_FLAGS = {
@@ -25,8 +32,17 @@ RESULT_FLAGS = {
     "duplicate_drivers",
     "many_null_positions",
     "no_single_winner",
+    "unreadable_marker",
 }
-LAP_FLAGS = {"no_laps", "many_null_laptimes", "laps_missing_drivers"}
+# Informational only: the session is still usable, so it never changes results_ok / laps_ok.
+INFO_FLAGS = {"some_untimed_laps"}
+LAP_FLAGS = {"no_laps", "many_null_laptimes", "laps_missing_drivers", "unreadable_marker"}
+
+
+def _untimed_fraction(laps: pd.DataFrame) -> float:
+    """Share of laps without a lap time, ignoring lap 1. NaN when there are no laps to judge."""
+    judged = laps[laps["LapNumber"] != 1]
+    return float(judged["LapTime"].isna().mean()) if len(judged) else np.nan
 
 
 def session_kind(slug: str) -> str:
@@ -44,28 +60,39 @@ def _read(table: str, year: int, rnd: int, slug: str, columns: list[str]) -> pd.
     return pd.read_parquet(path, columns=columns)
 
 
-def audit_session(marker, year: int, rnd: int, slug: str) -> dict:
-    info = json.loads(marker.read_text(encoding="utf-8"))
-    kind = session_kind(slug)
-    res = _read("results", year, rnd, slug, ["Abbreviation", "Position"])
-    laps = _read("laps", year, rnd, slug, ["Driver", "LapTime"])
-    row = {
-        "Year": year,
-        "Round": rnd,
-        "Session": slug,
-        "kind": kind,
-        "results_rows": len(res),
-        "results_null_position": int(res["Position"].isna().sum()),
-        "results_dup_drivers": int(res["Abbreviation"].duplicated().sum()),
-        "laps_rows": len(laps),
-        "laps_drivers": int(laps["Driver"].nunique()) if len(laps) else 0,
-        "laptime_null_frac": float(laps["LapTime"].isna().mean()) if len(laps) else 1.0,
-        "weather_rows": info["counts"].get("weather", 0),
-        "track_status_rows": info["counts"].get("track_status", 0),
-        "missing_tables": ",".join(info.get("missing", [])),
-    }
+def parse_marker_name(marker: Path) -> tuple[int, int, str]:
+    year, rnd, slug = marker.stem.split("_", 2)
+    return int(year), int(rnd), slug
 
-    flags = []
+
+def audit_session(marker: Path) -> dict[str, object]:
+    """Audit one session from its done-marker (year, round and session come from its name)."""
+    year, rnd, slug = parse_marker_name(marker)
+    kind = session_kind(slug)
+    row = {"Year": year, "Round": rnd, "Session": slug, "kind": kind}
+    flags: list[str] = []
+    try:
+        info = json.loads(marker.read_text(encoding="utf-8"))
+        if not isinstance(info, dict) or not isinstance(info.get("counts"), dict):
+            raise TypeError("marker is not a counts object")
+    except (OSError, TypeError, ValueError):  # JSONDecodeError is a ValueError
+        info = {"counts": {}, "missing": []}
+        flags.append("unreadable_marker")
+
+    res = _read("results", year, rnd, slug, ["Abbreviation", "Position"])
+    laps = _read("laps", year, rnd, slug, ["Driver", "LapNumber", "LapTime"])
+    row.update(
+        results_rows=len(res),
+        results_null_position=int(res["Position"].isna().sum()),
+        results_dup_drivers=int(res["Abbreviation"].duplicated().sum()),
+        laps_rows=len(laps),
+        laps_drivers=int(laps["Driver"].nunique()),
+        laptime_null_frac=_untimed_fraction(laps),
+        weather_rows=info["counts"].get("weather", 0),
+        track_status_rows=info["counts"].get("track_status", 0),
+        missing_tables=",".join(info.get("missing", [])),
+    )
+
     if not MIN_RESULT_ROWS <= row["results_rows"] <= MAX_RESULT_ROWS:
         flags.append("unusual_result_rows")
     if row["results_dup_drivers"]:
@@ -75,39 +102,51 @@ def audit_session(marker, year: int, rnd: int, slug: str) -> dict:
             flags.append("many_null_positions")
         if (res["Position"] == 1).sum() != 1:
             flags.append("no_single_winner")
+    # Independent checks: a session can have several lap problems and all are reported.
     if row["laps_rows"] == 0:
         flags.append("no_laps")
-    elif kind == "race" and row["laptime_null_frac"] > MAX_NULL_LAPTIME_FRAC:
-        flags.append("many_null_laptimes")
-    elif row["laps_drivers"] < row["results_rows"] - 2:
-        flags.append("laps_missing_drivers")
+    else:
+        # NaN means every lap present is lap 1, so there is nothing timed to use.
+        if kind == "race" and not row["laptime_null_frac"] <= HARD_NULL_LAPTIME_FRAC:
+            flags.append("many_null_laptimes")
+        elif kind == "race" and row["laptime_null_frac"] > SOFT_NULL_LAPTIME_FRAC:
+            flags.append("some_untimed_laps")
+        if row["laps_drivers"] < row["results_rows"] - 2:
+            flags.append("laps_missing_drivers")
     if row["weather_rows"] == 0:
         flags.append("no_weather")
 
     row["flags"] = ",".join(flags)
-    row["results_ok"] = bool(row["results_rows"]) and not RESULT_FLAGS & set(flags)
+    row["results_ok"] = not RESULT_FLAGS & set(flags)
     row["laps_ok"] = not LAP_FLAGS & set(flags)
+    row["weather_ok"] = "no_weather" not in flags
     return row
 
 
 def run_audit() -> pd.DataFrame:
-    rows = []
-    for marker in sorted((raw_dir() / "_done").glob("*.json")):
-        year, rnd, slug = marker.stem.split("_", 2)
-        rows.append(audit_session(marker, int(year), int(rnd), slug))
+    markers = sorted((raw_dir() / "_done").glob("*.json"))
+    if not markers:
+        raise FileNotFoundError("No ingested sessions found; run `python -m ml.ingest` first.")
+    rows = [audit_session(m) for m in markers]
     return pd.DataFrame(rows).sort_values(["Year", "Round", "Session"]).reset_index(drop=True)
 
 
 def main() -> int:
     report = run_audit()
     out = data_dir() / "reports"
-    out.mkdir(exist_ok=True)
-    report.to_csv(out / "data_quality.csv", index=False)
+    write_csv_atomic(report, out / "data_quality.csv", index=False)
 
     flagged = report[report["flags"] != ""]
-    print(f"{len(report)} sessions audited, {len(flagged)} flagged\n")
+    informational = flagged["flags"].map(lambda f: set(f.split(",")) <= INFO_FLAGS)
+    print(
+        f"{len(report)} sessions audited: {int((~informational).sum())} with problems, "
+        f"{int(informational.sum())} informational only\n"
+    )
     summary = report.groupby("kind").agg(
-        sessions=("Year", "size"), results_ok=("results_ok", "sum"), laps_ok=("laps_ok", "sum")
+        sessions=("Year", "size"),
+        results_ok=("results_ok", "sum"),
+        laps_ok=("laps_ok", "sum"),
+        weather_ok=("weather_ok", "sum"),
     )
     print(summary.to_string())
 
