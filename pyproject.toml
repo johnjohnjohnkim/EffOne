@@ -1,0 +1,27 @@
+[project]
+name = "effone"
+version = "0.1.0"
+description = "F1 race and season prediction"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "fastf1",
+    "pandas",
+    "numpy",
+    "pyarrow",
+    "scikit-learn",
+    "lightgbm",
+]
+
+[dependency-groups]
+dev = ["pytest", "ruff"]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
