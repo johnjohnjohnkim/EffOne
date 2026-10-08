@@ -46,7 +46,7 @@ TARGET_STAGES: dict[str, frozenset[str]] = {
 }
 
 
-def _as_flags(series: pd.Series, name: str) -> pd.Series:
+def as_flags(series: pd.Series, name: str) -> pd.Series:
     """`series` as real booleans; refuse gaps and look-alikes (strings, numbers) rather than guess."""
     if series.isna().any():
         raise ValueError(f"{name} has missing values")
@@ -66,7 +66,7 @@ def usable_history(history: pd.DataFrame) -> pd.DataFrame:
     """
     if "race_ok" not in history.columns:
         raise KeyError("history needs a 'race_ok' column (build it with ml.features.tables)")
-    flags = _as_flags(history["race_ok"], "history race_ok")
+    flags = as_flags(history["race_ok"], "history race_ok")
     if history.duplicated(["Year", "Round", "DriverId"]).any():
         raise ValueError("history has the same driver twice in one race")
     return history[flags]
@@ -127,7 +127,7 @@ def features_for_race(
     if target.empty:
         raise KeyError(f"no race {key}")
     out = features_for_entry(rows, target, key, builders)
-    out["race_ok"] = _as_flags(target["race_ok"], "race_ok")
+    out["race_ok"] = as_flags(target["race_ok"], "race_ok")
     for name, source in TARGETS.items():
         out[name] = target[source]
     return out
@@ -174,5 +174,5 @@ def training_frame(
     other `y_*` columns, no `race_ok`). Row order (by driver id within a race) is preserved.
     """
     columns = [*KEY_COLUMNS, *feature_columns(target, include_scenario=include_scenario), target]
-    keep = _as_flags(table["race_ok"], "race_ok") & table[target].notna()
+    keep = as_flags(table["race_ok"], "race_ok") & table[target].notna()
     return table.loc[keep, columns].reset_index(drop=True)

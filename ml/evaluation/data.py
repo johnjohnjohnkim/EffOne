@@ -4,11 +4,25 @@ import pandas as pd
 
 from ml.ingest.paths import raw_dir
 
-# Columns a model may see before a race starts. Everything else (Position, Status, Points...)
-# is an outcome and is hidden from models at prediction time.
+# Columns a model may see before a race starts (the old, results-only view). Everything else
+# (Position, Status, Points...) is an outcome and is hidden from models at prediction time.
 PRE_RACE_COLUMNS = ["Year", "Round", "Abbreviation", "DriverId", "TeamName", "GridPosition"]
 OUTCOME_COLUMNS = ["Position", "ClassifiedPosition", "Status", "Points", "Time", "Laps"]
 KEY = ["Year", "Round"]
+
+# What the harness scores each target against.
+TARGET_COLUMNS = {"race": "Position", "quali": "QualiPosition"}
+
+# What a model is handed for the race it must predict, per target. The modelling table has these
+# columns; a plain results table (used in some tests) simply has fewer, and only those are passed.
+_KEYS = ["Year", "Round", "DriverId", "Abbreviation", "TeamKey", "TeamName", "CircuitId"]
+_WEATHER = ["wx_air_temp", "wx_track_temp", "wx_humidity", "wx_wind_speed", "wx_rain_frac"]
+ENTRY_COLUMNS = {
+    # Race: the entry list, the weather, and the starting grid (real, or one the user typed in).
+    "race": [*_KEYS, *_WEATHER, "GridPosition"],
+    # Qualifying is decided before the grid exists and before race-day weather is known.
+    "quali": _KEYS,
+}
 
 
 def load_race_results() -> pd.DataFrame:
@@ -21,6 +35,16 @@ def load_race_results() -> pd.DataFrame:
     # Rows are ordered by a PRE-RACE key (the driver id), never by finishing position: row order must
     # not carry the answer, because ties and positional operations would otherwise read it.
     return df.sort_values(KEY + ["DriverId"]).reset_index(drop=True)
+
+
+def load_history() -> pd.DataFrame:
+    """The modelling table: one row per driver per race with results, qualifying, pace and weather.
+
+    Rows are ordered by race then driver id. This is what the harness and the models use.
+    """
+    from ml.features.tables import build_history  # imported late: features import this module
+
+    return build_history()
 
 
 def race_keys(df: pd.DataFrame) -> list[tuple[int, int]]:

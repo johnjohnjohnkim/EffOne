@@ -18,25 +18,24 @@ Planned for later: pit-stop strategy and safety-car prediction.
 
 - **No leakage.** A feature for a session uses only data available before that session.
 - **Time-ordered validation.** Models are tested on seasons they were not trained on (walk-forward), never with random splits.
-- **Baselines first.** A model only counts if it beats "grid = finish" and "previous race = finish" on held-out seasons.
+- **Baselines first.** A model only counts if it clearly beats the simple baselines on held-out seasons: "grid = finish", "previous race = finish" and "average of the last 5 results". "Clearly" uses an interval that resamples whole seasons.
 - **Probabilities, not single picks.** Results come from Monte Carlo simulation and are checked for calibration.
 - **Honest limits.** The model cannot see car upgrades, new drivers or new regulations. It extrapolates from recent form and shows lower confidence when data is thin.
 
 ## Project status
 
-| Phase | Description | Status |
+| Milestone | Description | Status |
 |---|---|---|
 | 0 | Project setup (Python 3.12, tooling, tests) | Done |
 | 1 | Data ingestion, 2018 to present | Done for races, qualifying and sprints (practice sessions still downloading) |
 | 2 | Evaluation harness and baselines | Done |
 | 3 | Leakage-safe features | Done |
-| 4 | Qualifying model | Not started |
-| 5 | Race model (predicted or user grid) | Not started |
-| 6 | Win / podium / top-10 probabilities and calibration | Not started |
-| 7 | Season simulation (both championships) | Not started |
-| 8 | API and prediction log | Not started |
-| 9 | Web UI | Not started |
-| 10 | Docker, AWS deployment, scheduled refresh | Not started |
+| 4 | Qualifying and race models (model zoo, honest leaderboards) | Done, with an honest negative result: for qualifying no model clearly beats a simple form average (see the report) |
+| 5 | Win / podium / top-10 probabilities and calibration | Not started |
+| 6 | Season simulation (both championships) | Not started |
+| 7 | API and prediction log | Not started |
+| 8 | Web UI | Not started |
+| 9 | Docker, AWS deployment, scheduled refresh | Not started |
 
 The full plan, decisions and a dated progress log are in [`HANDOFF.md`](HANDOFF.md). Contributor and agent rules are in [`AGENTS.md`](AGENTS.md).
 
@@ -117,9 +116,20 @@ onward and checking the features do not move. Rules for anyone training on the t
 ### Evaluate
 
 ```powershell
-# score the baselines with walk-forward validation; writes data/reports/leaderboard.csv
+# the model zoo on every target (about 3 minutes): qualifying, race with the real grid, and race
+# from a predicted grid. Writes data/reports/leaderboard_<target>.csv and per_race_<target>.csv.
+python -m uv run python -m ml.evaluation --models all
+
+# just the baselines, or one target
 python -m uv run python -m ml.evaluation
+python -m uv run python -m ml.evaluation --models all --target quali
 ```
+
+Every model is compared with the best baseline on the same races. Each row shows the gain with a 95%
+interval from a season-clustered bootstrap (races in a season are alike, so whole seasons are
+resampled), plus the number of seasons the model wins. "Clearly beats" means that interval is above
+zero. The exit code is 3 if no model clearly beats the best baseline on the race or qualifying
+board. The locked 2025 season is never scored unless `--allow-locked` is given.
 
 Tied scores are scored by expectation (tied drivers are equally likely to take any position the tie
 covers), so results never depend on row order, and a model that cannot tell drivers apart gets

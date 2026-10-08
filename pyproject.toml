@@ -10,6 +10,7 @@ dependencies = [
     "pyarrow",
     "scikit-learn",
     "lightgbm",
+    "xgboost>=3.4.1",
 ]
 
 [dependency-groups]

@@ -93,9 +93,20 @@ def scramble(rows: pd.DataFrame, key: tuple[int, int], stage: str, seed: int = 7
     _randomise(out, rng, later, ["GridPosition", *WEATHER_COLUMNS])
     # Later races: change the cast and the venue too, not just the numbers.
     n = int(later.sum())
-    out.loc[later, "DriverId"] = rng.choice([f"x{i}" for i in range(9)], n)
+    out.loc[later, "DriverId"] = [f"x{i}" for i in range(n)]  # all-new drivers, none repeated
     out.loc[later, "TeamKey"] = rng.choice(["tx", "ty", "t0"], n)
-    out.loc[later, "CircuitId"] = rng.choice(["c0", "c1", "c2", "cz"], n)
+    later_races = out.loc[later, ["Year", "Round"]].drop_duplicates()
+    new_circuit = dict(
+        zip(
+            map(tuple, later_races.to_numpy().tolist()),
+            rng.choice(["c0", "c1", "c2", "cz"], len(later_races)),
+            strict=True,
+        )
+    )  # one venue per race, as in real life
+    out.loc[later, "CircuitId"] = [
+        new_circuit[(y, r)]
+        for y, r in zip(out.loc[later, "Year"], out.loc[later, "Round"], strict=True)
+    ]
     if stage in ("pre_weekend", "scenario"):
         _randomise(out, rng, target, ["GridPosition"])
     if stage == "pre_weekend":

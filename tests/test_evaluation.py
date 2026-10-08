@@ -7,6 +7,7 @@ from ml.evaluation.data import OUTCOME_COLUMNS
 from ml.evaluation.harness import evaluate
 from ml.evaluation.metrics import race_metrics, summarize
 from ml.evaluation.splits import LockedSeasonError, check_not_locked, walk_forward_splits
+from tests.helpers import row
 
 DRIVERS = ["AAA", "BBB", "CCC", "DDD"]
 
@@ -176,3 +177,173 @@ def test_a_nan_score_is_an_error_not_a_free_pass():
             pd.Series([1.0, np.nan, 3.0], index=list("abc")),
             pd.Series([1.0, 2.0, 3.0], index=list("abc")),
         )
+
+
+# ---- the qualifying target and the entry lists the harness hands out ------------------------
+
+
+class RecordingModel:
+    name = "recorder"
+
+    def __init__(self):
+        self.entries = []
+
+    def fit(self, train):
+        pass
+
+    def predict_race(self, history, race):
+        self.entries.append(race.copy())
+        return pd.Series(0.0, index=race.index)
+
+
+def modelling_table():
+    from tests.helpers import make_rows
+
+    return make_rows(years=(2021, 2022, 2023), rounds=4, seed=11)
+
+
+def test_the_race_target_gets_the_grid_and_weather_the_quali_target_gets_neither():
+    table = modelling_table()
+    race_model, quali_model = RecordingModel(), RecordingModel()
+    evaluate([race_model], table, "race", locked_season=None)
+    evaluate([quali_model], table, "quali", locked_season=None)
+    race_cols, quali_cols = set(race_model.entries[0].columns), set(quali_model.entries[0].columns)
+    assert {"GridPosition", "wx_air_temp", "TeamKey", "CircuitId"} <= race_cols
+    assert {"TeamKey", "CircuitId", "DriverId"} <= quali_cols
+    assert not {"GridPosition", "wx_air_temp"} & quali_cols
+    outcomes = {"Position", "QualiPosition", "Points", "dnf", "pace_gap_pct", "race_ok"}
+    assert not outcomes & race_cols and not outcomes & quali_cols
+
+
+def test_each_target_is_scored_against_its_own_outcome():
+    from ml.evaluation.baselines import PreviousQualiBaseline
+
+    table = modelling_table()
+    order = {d: i + 1.0 for i, d in enumerate(sorted(table["DriverId"].unique()))}
+    table["QualiPosition"] = table["DriverId"].map(order)  # qualifying order never changes
+    quali = evaluate([PreviousQualiBaseline()], table, "quali", locked_season=None)
+    race = evaluate([PreviousQualiBaseline()], table, "race", locked_season=None)
+    # Repeating last qualifying is perfect for qualifying, and nothing special for the race.
+    assert quali["spearman"].iloc[1:].eq(1.0).all()
+    assert race["spearman"].abs().mean() < 0.6
+
+
+def test_models_see_the_full_entry_list_but_only_drivers_with_an_outcome_are_scored(monkeypatch):
+    from ml.evaluation import harness
+
+    table = modelling_table()
+    first_test_race = table[(table["Year"] == 2022) & (table["Round"] == 1)]
+    table.loc[first_test_race.index[:2], "QualiPosition"] = np.nan  # 2021 is training-only
+    scored_sizes = []
+    real_metrics = harness.race_metrics
+
+    def capture(scores, actual):
+        scored_sizes.append(len(actual))
+        return real_metrics(scores, actual)
+
+    monkeypatch.setattr(harness, "race_metrics", capture)
+    model = RecordingModel()
+    evaluate([model], table, "quali", locked_season=None)
+    assert {len(e) for e in model.entries} == {6}  # nobody is hidden from the model by the result
+    assert min(scored_sizes) == 4 and max(scored_sizes) == 6  # but the unknown ones are not scored
+
+
+def test_races_with_fewer_than_two_known_outcomes_are_skipped():
+    table = modelling_table()
+    one_race = (table["Year"] == 2022) & (table["Round"] == 1)
+    table.loc[one_race, "QualiPosition"] = np.nan
+    model = RecordingModel()
+    out = evaluate([model], table, "quali", locked_season=None)
+    assert not ((out["Year"] == 2022) & (out["Round"] == 1)).any()
+
+
+def _history_for_form():
+    rows = [
+        row(2022, rnd, driver, Position=finish, QualiPosition=finish, Abbreviation=driver.upper())
+        for rnd, (a, b) in enumerate(
+            [(1.0, 5.0), (2.0, 5.0), (3.0, 5.0), (4.0, 5.0), (5.0, 5.0), (6.0, 1.0)], 1
+        )
+        for driver, finish in (("a", a), ("b", b))
+    ]
+    return pd.DataFrame(rows)
+
+
+def test_mean_of_the_last_five_baseline_averages_the_last_five_results_only():
+    from ml.evaluation.baselines import MeanLast5FinishBaseline
+
+    history = _history_for_form()
+    race = pd.DataFrame([row(2022, 7, "a", Abbreviation="A"), row(2022, 7, "b", Abbreviation="B")])
+    scores = MeanLast5FinishBaseline().predict_race(history, race)
+    # driver a: last five finishes are 2, 3, 4, 5, 6 -> 4.0; driver b: 5, 5, 5, 5, 1 -> 4.2
+    assert scores.tolist() == pytest.approx([4.0, 4.2])
+
+
+def test_mean_of_the_last_five_ignores_races_marked_not_ok_and_puts_debutants_last():
+    from ml.evaluation.baselines import MeanLast5FinishBaseline
+
+    history = _history_for_form()
+    history.loc[history["Round"] == 6, "race_ok"] = False  # the 6th race carries no information
+    race = pd.DataFrame(
+        [row(2022, 7, "a", Abbreviation="A"), row(2022, 7, "rookie", Abbreviation="R")]
+    )
+    scores = MeanLast5FinishBaseline().predict_race(history, race)
+    assert scores.iloc[0] == pytest.approx(3.0)  # finishes 1 to 5
+    assert scores.iloc[1] > scores.iloc[0]  # a driver with no results goes behind
+
+
+def test_every_target_has_a_mean_of_last_five_baseline():
+    from ml.evaluation.baselines import BASELINES_BY_TARGET
+
+    names = {t: [cls().name for cls in classes] for t, classes in BASELINES_BY_TARGET.items()}
+    assert "mean_last5_finish" in names["race"] and "mean_last5_quali" in names["quali"]
+    assert len(names["race"]) == len(names["quali"]) == 3
+
+
+def test_a_tie_in_the_actual_result_does_not_penalise_a_perfect_predictor():
+    perfect = pd.Series(range(1, 13), index=range(12), dtype=float)
+    tied_pole = pd.Series([1, 1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], index=range(12), dtype=float)
+    # Either of the two co-leaders may be called the winner: a coin flip, not a miss.
+    assert race_metrics(perfect, tied_pole)["winner_acc"] == pytest.approx(0.5)
+    tied_at_the_cut = pd.Series(
+        [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 12], index=range(12), dtype=float
+    )
+    got = race_metrics(perfect, tied_at_the_cut)
+    assert got["top10_overlap"] == pytest.approx(
+        0.95
+    )  # one of the two tied for 10th is in, one out
+    assert got["podium_overlap"] == 1.0 and got["spearman"] > 0.99
+
+
+def test_swapping_which_driver_holds_a_tied_actual_position_changes_nothing():
+    scores = pd.Series([1.0, 2.0, 3.0, 4.0, 5.0], index=list("abcde"))
+    actual = pd.Series([1.0, 2.0, 2.0, 4.0, 5.0], index=list("abcde"))
+    mirrored = pd.Series([1.0, 2.0, 2.0, 4.0, 5.0], index=list("abcde"))
+    mirrored.loc[["b", "c"]] = mirrored.loc[["c", "b"]].to_numpy()  # same values, same drivers
+    assert race_metrics(scores, actual) == pytest.approx(race_metrics(scores, mirrored))
+    # ... and swapping the two PREDICTED scores of the tied drivers is also a no-op on the metrics
+    swapped = scores.copy()
+    swapped.loc[["b", "c"]] = scores.loc[["c", "b"]].to_numpy()
+    flipped = race_metrics(swapped, actual)
+    original = race_metrics(scores, actual)
+    for key in ("winner_acc", "podium_overlap", "top10_overlap", "mae_position"):
+        assert flipped[key] == pytest.approx(original[key])
+
+
+def test_previous_result_baselines_ignore_races_marked_not_ok_and_reject_bad_flags():
+    from ml.evaluation.baselines import PreviousRaceBaseline
+
+    history = _history_for_form()
+    history.loc[history["Round"] == 6, "race_ok"] = False
+    race = pd.DataFrame([row(2022, 7, "a", Abbreviation="A"), row(2022, 7, "b", Abbreviation="B")])
+    scores = PreviousRaceBaseline().predict_race(history, race)
+    assert scores.tolist() == [5.0, 5.0]  # round 5 is the last race that counts, not round 6
+    gappy = history.copy()
+    gappy["race_ok"] = gappy["race_ok"].astype(object)
+    gappy.loc[0, "race_ok"] = None
+    with pytest.raises(ValueError, match="race_ok"):
+        PreviousRaceBaseline().predict_race(gappy, race)
+    text = history.copy()
+    text["race_ok"] = text["race_ok"].astype(object)
+    text.loc[:, "race_ok"] = "False"
+    with pytest.raises(ValueError, match="real booleans"):
+        PreviousRaceBaseline().predict_race(text, race)
