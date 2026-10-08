@@ -1,27 +1,64 @@
-"""Per-race ranking metrics. Predictions are scores where lower means a better finish."""
+"""Per-race ranking metrics. Predictions are scores where lower means a better finish.
 
+Tied scores are handled by EXPECTATION, not by a tie-break: drivers with equal scores are treated as
+equally likely to take any of the positions the tie covers. Every metric is therefore deterministic
+and independent of the order of the rows and of the order a model returns its scores in. A model
+that cannot tell drivers apart (a constant score) gets exactly chance-level credit.
+"""
+
+import numpy as np
 import pandas as pd
 
 
-def predicted_order(scores: pd.Series) -> pd.Series:
-    """Unique predicted finishing positions (1 = best). Ties are broken by row order."""
-    return scores.rank(method="first").astype(int)
+def _tie_structure(scores: pd.Series) -> tuple[pd.Series, pd.Series]:
+    """For each driver: how many drivers score strictly better, and how many share their score."""
+    values = scores.to_numpy(dtype=float)
+    if np.isnan(values).any():
+        raise ValueError("scores must not contain NaN: a model has to score every driver")
+    better = pd.Series((values[None, :] < values[:, None]).sum(axis=1), index=scores.index)
+    tied = pd.Series((values[None, :] == values[:, None]).sum(axis=1), index=scores.index)
+    return better, tied
 
 
 def race_metrics(scores: pd.Series, actual_position: pd.Series) -> dict[str, float]:
-    """Compare one race's predicted scores with the actual finishing positions."""
-    pred = predicted_order(scores)
+    """Compare one race's predicted scores with the actual finishing positions.
+
+    - spearman: rank correlation, with tied scores given their average rank (0.0 if all tied).
+    - mae_position: expected absolute difference between predicted and actual position.
+    - winner_acc, podium_overlap, top10_overlap: expected share of the real top 1 / 3 / 10 that the
+      predicted top 1 / 3 / 10 contains (a tie that straddles the cut counts fractionally).
+    """
     actual = actual_position.rank(method="first").astype(int)
+    scores = scores.reindex(actual.index)
+    better, tied = _tie_structure(scores)
+
+    average_rank = better + (tied + 1) / 2
+    if average_rank.std() == 0 or actual.std() == 0:
+        spearman = 0.0  # every driver tied: the ranking says nothing
+    else:
+        spearman = float(average_rank.corr(actual))
+
+    # A driver in a tie covering positions better+1 .. better+tied takes each with equal chance.
+    expected_error = pd.Series(
+        [
+            np.abs(np.arange(b + 1, b + t + 1) - a).mean()
+            for b, t, a in zip(better, tied, actual, strict=True)
+        ],
+        index=actual.index,
+    )
 
     def top_overlap(n: int) -> float:
-        return len(set(pred[pred <= n].index) & set(actual[actual <= n].index)) / n
+        in_top = ((n - better) / tied).clip(0, 1)  # chance of being inside the predicted top n
+        return float(
+            in_top[actual <= n].sum() / min(n, len(actual))
+        )  # a short field has fewer slots
 
     return {
-        "spearman": float(pred.corr(actual, method="spearman")),
-        "mae_position": float((pred - actual).abs().mean()),
-        "winner_acc": float(top_overlap(1)),
-        "podium_overlap": float(top_overlap(3)),
-        "top10_overlap": float(top_overlap(10)),
+        "spearman": spearman,
+        "mae_position": float(expected_error.mean()),
+        "winner_acc": top_overlap(1),
+        "podium_overlap": top_overlap(3),
+        "top10_overlap": top_overlap(10),
     }
 
 

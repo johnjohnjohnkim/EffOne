@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -114,3 +115,64 @@ def test_evaluation_is_deterministic_and_skips_locked_season():
     pd.testing.assert_frame_equal(a, b)
     assert set(evaluate(models(), results, locked_season=2025)["Year"]) == {2024}
     assert 2025 in set(evaluate(models(), results, locked_season=2025, allow_locked=True)["Year"])
+
+
+def finish_ordered(n):
+    """Actual positions where the rows are in exact finishing order, the worst case for ties."""
+    return pd.Series(range(1, n + 1), index=range(n), dtype=float)
+
+
+@pytest.mark.parametrize("n", [8, 10, 20, 22])
+def test_a_constant_score_earns_exactly_chance_even_when_rows_are_sorted_by_the_answer(n):
+    got = race_metrics(pd.Series(0.0, index=range(n)), finish_ordered(n))
+    assert got["spearman"] == 0.0
+    assert got["winner_acc"] == pytest.approx(1 / n)
+    assert got["podium_overlap"] == pytest.approx(3 / n)
+    assert got["top10_overlap"] == pytest.approx(min(10, n) / n)
+    assert got["mae_position"] == pytest.approx((n * n - 1) / (3 * n))  # E|i - j| for random order
+
+
+def test_partial_ties_are_scored_by_expectation_not_by_a_tie_break():
+    scores = pd.Series([1.0, 1.0, 2.0, 3.0], index=list("abcd"))  # a and b tied for 1st/2nd
+    actual = pd.Series([1.0, 2.0, 3.0, 4.0], index=list("abcd"))
+    got = race_metrics(scores, actual)
+    assert got["winner_acc"] == pytest.approx(
+        0.5
+    )  # a is the real winner; 50% chance it leads the tie
+    assert got["podium_overlap"] == pytest.approx(
+        1.0
+    )  # a, b, c fill the top 3 whatever the tie does
+    assert got["mae_position"] == pytest.approx(0.25)  # a, b each 0.5 off on average; c, d exact
+    average_ranks = pd.Series([1.5, 1.5, 3.0, 4.0], index=list("abcd"))
+    assert got["spearman"] == pytest.approx(average_ranks.corr(actual))
+
+
+def test_metrics_do_not_depend_on_row_order_or_the_order_scores_are_returned_in():
+    rng = np.random.default_rng(5)
+    scores = pd.Series(rng.integers(0, 4, size=20).astype(float), index=range(20))  # many ties
+    actual = pd.Series(rng.permutation(20) + 1.0, index=range(20))
+    base = race_metrics(scores, actual)
+    for seed in range(5):
+        order = np.random.default_rng(seed).permutation(20)
+        assert race_metrics(scores.iloc[order], actual) == pytest.approx(base)
+        assert race_metrics(scores, actual.iloc[order]) == pytest.approx(base)
+
+
+def test_untied_scores_behave_exactly_as_a_plain_ranking():
+    scores = pd.Series([3.0, 1.0, 2.0, 4.0], index=list("abcd"))
+    actual = pd.Series([2.0, 1.0, 3.0, 4.0], index=list("abcd"))
+    got = race_metrics(scores, actual)
+    # predicted order b, c, a, d against actual b, a, c, d: same top 3 as a set, two swapped places
+    assert got["winner_acc"] == 1.0 and got["podium_overlap"] == pytest.approx(1.0)
+    assert got["mae_position"] == pytest.approx(0.5)
+    assert got["spearman"] == pytest.approx(
+        pd.Series([3.0, 1.0, 2.0, 4.0]).corr(pd.Series([2.0, 1.0, 3.0, 4.0]))
+    )
+
+
+def test_a_nan_score_is_an_error_not_a_free_pass():
+    with pytest.raises(ValueError, match="NaN"):
+        race_metrics(
+            pd.Series([1.0, np.nan, 3.0], index=list("abc")),
+            pd.Series([1.0, 2.0, 3.0], index=list("abc")),
+        )

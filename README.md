@@ -29,7 +29,7 @@ Planned for later: pit-stop strategy and safety-car prediction.
 | 0 | Project setup (Python 3.12, tooling, tests) | Done |
 | 1 | Data ingestion, 2018 to present | Done for races, qualifying and sprints (practice sessions still downloading) |
 | 2 | Evaluation harness and baselines | Done |
-| 3 | Leakage-safe features | Not started |
+| 3 | Leakage-safe features | Done |
 | 4 | Qualifying model | Not started |
 | 5 | Race model (predicted or user grid) | Not started |
 | 6 | Win / podium / top-10 probabilities and calibration | Not started |
@@ -95,12 +95,35 @@ python -m uv run python -m ml.ingest.audit          # data/reports/data_quality.
 - Data and the fastf1 cache live in `data/` (git-ignored). Set `EFFONE_DATA_DIR` to store them elsewhere, for example on a different drive.
 - The audit flags problems per session and sets `results_ok` / `laps_ok`; it never deletes anything.
 
+### Build features
+
+```powershell
+python -m uv run python -m ml.features    # data/features/race_features.parquet + feature_missing.csv
+```
+
+One row per driver per race. Each feature is computed from races strictly before the target race plus
+its entry list, never from its outcome; tests prove this by scrambling everything from the target
+onward and checking the features do not move. Rules for anyone training on the table:
+
+- Rows are ordered by driver id, never by finishing position. Keep it that way.
+- Use `feature_columns(target)` to get the features legitimately known for a target. The starting
+  grid is excluded for qualifying and grid targets. Weather is opt-in (`include_scenario=True`)
+  because history holds the realised race-day weather while a prediction only has a forecast.
+- `race_ok` marks races that carried no performance information (the 2021 Belgian GP). Use it to
+  drop training rows only: it is derived from that race's own results, so it is not a feature and
+  not a test filter.
+- `features_for_entry(history, entries, key)` builds features for a race that has not happened.
+
 ### Evaluate
 
 ```powershell
 # score the baselines with walk-forward validation; writes data/reports/leaderboard.csv
 python -m uv run python -m ml.evaluation
 ```
+
+Tied scores are scored by expectation (tied drivers are equally likely to take any position the tie
+covers), so results never depend on row order, and a model that cannot tell drivers apart gets
+exactly chance-level credit.
 
 ### Tests
 

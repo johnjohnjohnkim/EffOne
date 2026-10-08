@@ -12,13 +12,15 @@ KEY = ["Year", "Round"]
 
 
 def load_race_results() -> pd.DataFrame:
-    """All ingested Race results, one row per driver per race, ordered by race then finish."""
+    """All ingested Race results, one row per driver per race, ordered by race then driver id."""
     files = sorted(raw_dir().glob("results/year=*/round=*/race.parquet"))
     if not files:
         raise FileNotFoundError("No race results found; run `python -m ml.ingest` first.")
     cols = PRE_RACE_COLUMNS + OUTCOME_COLUMNS
     df = pd.concat((pd.read_parquet(f, columns=cols) for f in files), ignore_index=True)
-    return df.sort_values(KEY + ["Position"]).reset_index(drop=True)
+    # Rows are ordered by a PRE-RACE key (the driver id), never by finishing position: row order must
+    # not carry the answer, because ties and positional operations would otherwise read it.
+    return df.sort_values(KEY + ["DriverId"]).reset_index(drop=True)
 
 
 def race_keys(df: pd.DataFrame) -> list[tuple[int, int]]:
