@@ -72,6 +72,22 @@ def build_models(target: str, which: str, history: pd.DataFrame) -> tuple[str, l
     )
 
 
+def calibration_command(history: pd.DataFrame, seasons, out, args) -> int:
+    from ml.features.build import build_feature_table
+    from ml.simulation.report import calibration_report
+
+    if seasons is None:  # "all": every season except the locked one
+        seasons = tuple(s for s in sorted(history["Year"].unique()) if s != LOCKED_SEASON)
+    summary = calibration_report(
+        history, build_feature_table(history), seasons, out, args.allow_locked, args.n_boot
+    )
+    shown = summary.drop(columns=["best_baseline", "races"])
+    with pd.option_context("display.float_format", "{:.4f}".format, "display.width", 200):
+        print(shown.to_string(index=False))
+    print(f"\nSaved to {out}")
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--models", choices=["baselines", "all"], default="baselines")
@@ -90,10 +106,20 @@ def main() -> int:
         help=f"Also evaluate the locked final test season ({LOCKED_SEASON}). Use once, after the "
         "model choice is frozen.",
     )
+    parser.add_argument(
+        "--calibration",
+        action="store_true",
+        help="Score the simulated win/podium/top-10/DNF probabilities instead of the leaderboards: "
+        "writes log-loss tables and reliability plots to data/reports.",
+    )
     args = parser.parse_args()
 
     history = load_history()
     out = data_dir() / "reports"
+    if args.calibration:
+        return calibration_command(
+            history, test_seasons(args.seasons, args.allow_locked), out, args
+        )
     targets = TARGETS if args.target == "all" else (args.target,)
     status = 0
     for target in targets:

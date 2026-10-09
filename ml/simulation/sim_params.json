@@ -1,0 +1,23 @@
+{
+  "real_grid": {
+    "sigma": 0.5834,
+    "gamma": 0.5,
+    "n_sims": 20000,
+    "seed": 0
+  },
+  "predicted_grid": {
+    "sigma": 0.7955,
+    "gamma": 0.5,
+    "n_sims": 20000,
+    "seed": 0
+  },
+  "provenance": {
+    "dev_seasons": [
+      2019,
+      2020,
+      2021
+    ],
+    "selection": "lowest mean (win + podium + top10) log-loss on the development races",
+    "tuned_at": "2026-10-09T04:47:36+00:00"
+  }
+}

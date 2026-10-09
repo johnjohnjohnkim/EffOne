@@ -1,0 +1,14 @@
+variant,dev_logloss,mean_predicted,actual_rate
+logistic all 24 features C=0.05,0.4139,0.144,0.129
+logistic all 24 features C=0.005,0.3937,0.150,0.129
+logistic all 24 features C=0.0005,0.3907,0.163,0.129
+logistic dnf+grid features C=0.05,0.3922,0.171,0.129
+logistic dnf+grid features C=0.01,0.3914,0.169,0.129
+logistic dnf features only C=0.05,0.3945,0.170,0.129
+logistic dnf features only C=0.01,0.3933,0.168,0.129
+flat rate: all training seasons,0.3921,0.167,0.129
+flat rate: all earlier races,0.3893,0.159,0.129
+flat rate: last 2 seasons (chosen level),0.3882,0.152,0.129
+last-2 rate x relative risk (dnf+grid C=0.01) weight 0,0.3882,,
+last-2 rate x relative risk (dnf+grid C=0.01) weight 0.5,0.3872,,
+last-2 rate x relative risk (dnf+grid C=0.01) weight 1 (chosen),0.3866,,
