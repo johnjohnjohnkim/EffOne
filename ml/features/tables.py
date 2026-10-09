@@ -172,6 +172,11 @@ def build_history() -> pd.DataFrame:
     )
     races = races.merge(pd.DataFrame(weather_rows), on=["Year", "Round"], how="left")
 
+    from ml.features.weekend import build_weekend_table  # late: weekend imports this module
+
+    weekend = build_weekend_table(load_events(), races[["Year", "Round", "Abbreviation"]])
+    races = races.merge(weekend, on=["Year", "Round", "Abbreviation"], how="left")
+
     quality = race_quality()
     races = races.merge(quality, on=["Year", "Round"], how="left")
     # Lap-derived figures are only trusted where the audit says the lap data is usable.

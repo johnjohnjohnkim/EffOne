@@ -28,13 +28,16 @@ import numpy as np
 import pandas as pd
 
 from ml.features.tables import WEATHER_COLUMNS
+from ml.features.weekend import PQ_COLUMNS
 from ml.ingest.circuit_history import eligible_circuit_years
 
-Stage = Literal["pre_weekend", "scenario", "post_quali"]
+Stage = Literal["pre_weekend", "recency", "post_practice", "scenario", "post_quali"]
 
 KEY_COLUMNS = ["Year", "Round", "DriverId", "Abbreviation", "TeamKey", "CircuitId"]
 STAGE_INPUTS: dict[str, list[str]] = {
     "pre_weekend": KEY_COLUMNS,
+    "recency": KEY_COLUMNS,
+    "post_practice": [*KEY_COLUMNS, *PQ_COLUMNS],
     "scenario": [*KEY_COLUMNS, *WEATHER_COLUMNS],
     "post_quali": [*KEY_COLUMNS, *WEATHER_COLUMNS, "GridPosition"],
 }
@@ -167,6 +170,69 @@ class TeamForm:
         return out[list(self.columns)]
 
 
+HALF_LIVES = (2, 4, 8)  # races; a result this many races old counts half as much as the latest
+
+
+def _recency_weighted_mean(values: pd.Series, age: pd.Series, groups: pd.Series, half_life: float):
+    """Mean of `values` per group with weight 0.5 ** (age / half_life); NaN values are skipped."""
+    weight = (0.5 ** (age / half_life)).where(values.notna())
+    total = (values * weight).groupby(groups).sum(min_count=1)
+    return total / weight.groupby(groups).sum(min_count=1)
+
+
+class RecencyForm:
+    """Qualifying form where recent races count more, at several half-lives (in races).
+
+    The plain `*_l5` features weight the last five races equally and ignore everything older, so a
+    car upgrade or a regulation reset shows up late. Here every earlier race counts, newest most.
+    Age is the number of races since, counted over the whole calendar in `history`, so a driver
+    who missed races is not made to look recent. Half-lives are separate columns so a model can
+    pick one (`feature_plan(recency=...)`); the choice is tuned on development seasons only.
+    """
+
+    name = "recency_form"
+    stage: Stage = "recency"
+    columns = tuple(
+        f"{stem}_ew{h}" for h in HALF_LIVES for stem in ("drv_qgap", "drv_quali", "team_qgap")
+    )
+
+    def compute(self, history: pd.DataFrame, race: pd.DataFrame) -> pd.DataFrame:
+        out = pd.DataFrame(index=race.index)
+        if history.empty:
+            for column in self.columns:
+                out[column] = np.nan
+            return out[list(self.columns)]
+        order = history[["Year", "Round"]].drop_duplicates().sort_values(["Year", "Round"])
+        position = pd.MultiIndex.from_frame(order)
+        index = position.get_indexer(pd.MultiIndex.from_frame(history[["Year", "Round"]]))
+        h = history.assign(age=len(order) - 1 - index)
+        drivers = h[h["DriverId"].isin(race["DriverId"])]
+        teams = (
+            h[h["TeamKey"].isin(race["TeamKey"])]
+            .groupby(["TeamKey", "Year", "Round"], as_index=False)
+            .agg(qgap=("quali_gap_pct", "mean"), age=("age", "first"))
+        )
+        for half_life in HALF_LIVES:
+            by_driver = {
+                "drv_qgap": _recency_weighted_mean(
+                    drivers["quali_gap_pct"], drivers["age"], drivers["DriverId"], half_life
+                ),
+                "drv_quali": _recency_weighted_mean(
+                    drivers["QualiPosition"].astype(float),
+                    drivers["age"],
+                    drivers["DriverId"],
+                    half_life,
+                ),
+            }
+            for stem, series in by_driver.items():
+                out[f"{stem}_ew{half_life}"] = race["DriverId"].map(series).to_numpy()
+            by_team = _recency_weighted_mean(
+                teams["qgap"], teams["age"], teams["TeamKey"], half_life
+            )
+            out[f"team_qgap_ew{half_life}"] = race["TeamKey"].map(by_team).to_numpy()
+        return out[list(self.columns)]
+
+
 class CircuitHistory:
     """How drivers and cars have fared at this circuit, using only seasons that count.
 
@@ -245,6 +311,40 @@ class Context:
         return out[list(self.columns)]
 
 
+class WeekendPace:
+    """Same-weekend pace, known once practice (and any earlier sprint session) has been run.
+
+    The raw `pq_` columns come from the earlier sessions of this weekend (see weekend.py) and are
+    inputs, like the weather; this builder adds within-field views of them: the rank of each
+    driver's best practice gap, and the gap to their teammate(s), which removes the car and leaves
+    the driver. Missing sessions leave NaN.
+    """
+
+    name = "weekend_pace"
+    stage: Stage = "post_practice"
+    columns = (
+        "pq_fp_best_gap",
+        "pq_fp_last_gap",
+        "pq_fp_best_rank",
+        "pq_fp_vs_teammate",
+        "pq_fp_n",
+        "pq_sprintq_pos",
+        "pq_sprintq_gap",
+        "pq_sprint_pos",
+    )
+
+    def compute(self, history: pd.DataFrame, race: pd.DataFrame) -> pd.DataFrame:
+        out = race[list(PQ_COLUMNS)].copy()
+        gap = race["pq_fp_best_gap"]
+        out["pq_fp_best_rank"] = gap.rank(method="average")
+        team_sum = gap.groupby(race["TeamKey"]).transform("sum")  # NaN counts as 0 here
+        team_n = gap.notna().astype(float).groupby(race["TeamKey"]).transform("sum")
+        others_n = team_n - gap.notna().astype(float)
+        others_mean = (team_sum - gap.fillna(0.0)) / others_n.where(others_n > 0)
+        out["pq_fp_vs_teammate"] = gap - others_mean
+        return out[list(self.columns)]
+
+
 class Weather:
     """Scenario inputs: the race-day weather (a user-chosen or forecast value when predicting)."""
 
@@ -284,8 +384,10 @@ class Grid:
 BUILDERS: list[FeatureBuilder] = [
     DriverForm(),
     TeamForm(),
+    RecencyForm(),
     CircuitHistory(),
     Context(),
+    WeekendPace(),
     Weather(),
     Grid(),
 ]

@@ -3,7 +3,9 @@
 import numpy as np
 import pandas as pd
 
+from ml.features.builders import STAGE_INPUTS
 from ml.features.tables import WEATHER_COLUMNS
+from ml.features.weekend import PQ_COLUMNS
 
 OUTCOME_COLUMNS = ["Position", "Points", "dnf", "QualiPosition", "quali_gap_pct", "pace_gap_pct"]
 DRIVERS = [f"d{i}" for i in range(6)]
@@ -30,6 +32,7 @@ def row(year, rnd, driver, team="t0", circuit="c0", **overrides) -> dict:
         "pace_gap_pct": 1.0,
         "race_ok": True,
         **dict.fromkeys(WEATHER_COLUMNS, 10.0),
+        **dict.fromkeys(PQ_COLUMNS, 1.0),
     }
     return base | overrides
 
@@ -63,6 +66,12 @@ def make_rows(years=(2022, 2023), rounds=5, seed=0) -> pd.DataFrame:
                         wx_humidity=50 + float(rng.random() * 20),
                         wx_wind_speed=float(rng.random() * 5),
                         wx_rain_frac=float(rng.random() * 0.3),
+                        pq_fp_best_gap=float(rng.random() * 3),
+                        pq_fp_last_gap=float(rng.random() * 3),
+                        pq_fp_n=3.0,
+                        pq_sprintq_pos=float(rng.integers(1, 7)),
+                        pq_sprintq_gap=float(rng.random()),
+                        pq_sprint_pos=float(rng.integers(1, 7)),
                     )
                 )
     return pd.DataFrame(rows)
@@ -90,7 +99,8 @@ def scramble(rows: pd.DataFrame, key: tuple[int, int], stage: str, seed: int = 7
     later = (out["Year"] > year) | ((out["Year"] == year) & (out["Round"] > rnd))
 
     _randomise(out, rng, target | later, OUTCOME_COLUMNS)
-    _randomise(out, rng, later, ["GridPosition", *WEATHER_COLUMNS])
+    inputs = ["GridPosition", *WEATHER_COLUMNS, *PQ_COLUMNS]
+    _randomise(out, rng, later, inputs)
     # Later races: change the cast and the venue too, not just the numbers.
     n = int(later.sum())
     out.loc[later, "DriverId"] = [f"x{i}" for i in range(n)]  # all-new drivers, none repeated
@@ -107,8 +117,7 @@ def scramble(rows: pd.DataFrame, key: tuple[int, int], stage: str, seed: int = 7
         new_circuit[(y, r)]
         for y, r in zip(out.loc[later, "Year"], out.loc[later, "Round"], strict=True)
     ]
-    if stage in ("pre_weekend", "scenario"):
-        _randomise(out, rng, target, ["GridPosition"])
-    if stage == "pre_weekend":
-        _randomise(out, rng, target, WEATHER_COLUMNS)
+    # The target race's own inputs that this stage is not allowed to see.
+    visible = set(STAGE_INPUTS[stage])
+    _randomise(out, rng, target, [c for c in inputs if c not in visible])
     return out

@@ -2,6 +2,7 @@
 
 import pandas as pd
 
+from ml.features.weekend import PQ_COLUMNS
 from ml.ingest.paths import raw_dir
 
 # Columns a model may see before a race starts (the old, results-only view). Everything else
@@ -11,7 +12,11 @@ OUTCOME_COLUMNS = ["Position", "ClassifiedPosition", "Status", "Points", "Time",
 KEY = ["Year", "Round"]
 
 # What the harness scores each target against.
-TARGET_COLUMNS = {"race": "Position", "quali": "QualiPosition"}
+TARGET_COLUMNS = {
+    "race": "Position",
+    "quali": "QualiPosition",
+    "quali_after_practice": "QualiPosition",
+}
 
 # What a model is handed for the race it must predict, per target. The modelling table has these
 # columns; a plain results table (used in some tests) simply has fewer, and only those are passed.
@@ -22,6 +27,8 @@ ENTRY_COLUMNS = {
     "race": [*_KEYS, *_WEATHER, "GridPosition"],
     # Qualifying is decided before the grid exists and before race-day weather is known.
     "quali": _KEYS,
+    # The same, once practice (and any earlier sprint session) has been run.
+    "quali_after_practice": [*_KEYS, *PQ_COLUMNS],
 }
 
 

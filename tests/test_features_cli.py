@@ -43,7 +43,16 @@ def test_roles_distinguish_keys_stages_flag_and_targets(run_cli):
     assert set(roles[list(TARGETS)]) == {"target"}
     assert roles["grid"] == "post_quali" and roles["wx_air_temp"] == "scenario"
     assert roles["drv_finish_l5"] == "pre_weekend"
-    assert set(roles) == {"key", "flag", "target", "pre_weekend", "scenario", "post_quali"}
+    assert set(roles) == {
+        "key",
+        "flag",
+        "target",
+        "pre_weekend",
+        "recency",
+        "post_practice",
+        "scenario",
+        "post_quali",
+    }
 
 
 def test_the_printout_names_the_usable_features_per_target(run_cli):

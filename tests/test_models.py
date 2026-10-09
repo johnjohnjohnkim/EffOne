@@ -41,11 +41,12 @@ def train_rows(rows):
     return rows[rows["Year"] < TEST_KEY[0]]
 
 
-ALL_MODELS = [(t, m.name) for t in ("race", "quali") for m in make_models(t, pd.DataFrame())]
+ALL_MODELS = [(t, m.name) for t in ("race", "quali") for m in make_models(t, pd.DataFrame(), {})]
 
 
 def fresh_models(target, table):
-    return {m.name: m for m in make_models(target, table)}
+    # {} = the factory defaults, so these tests do not depend on whatever has been tuned
+    return {m.name: m for m in make_models(target, table, {})}
 
 
 # ---- interface -------------------------------------------------------------------------------
@@ -124,7 +125,8 @@ def test_the_harness_never_hands_a_model_outcomes_or_a_grid_for_qualifying(rows)
     assert not outcomes & set(quali.columns) and not outcomes & set(race.columns)
     assert "GridPosition" not in quali.columns and not {"wx_air_temp"} & set(quali.columns)
     assert {"GridPosition", "wx_air_temp"} <= set(race.columns)
-    assert TARGET_COLUMNS == {"race": "Position", "quali": "QualiPosition"}
+    assert TARGET_COLUMNS["race"] == "Position" and TARGET_COLUMNS["quali"] == "QualiPosition"
+    assert TARGET_COLUMNS["quali_after_practice"] == "QualiPosition"
 
 
 # ---- grids: user-supplied and predicted -------------------------------------------------------

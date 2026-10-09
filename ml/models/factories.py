@@ -1,11 +1,14 @@
 """Estimator factories for the model zoo.
 
-Hyperparameters were set by hand to conservative values (shallow trees, strong regularisation, about
-3,000 training rows) and were never searched. Their provenance was not logged, though, and they were
-chosen with these seasons in view, so treat the leaderboard as mildly optimistic. One setting, the
-LambdaRank label gain, was changed after the test seasons showed the default underperforming. Each
-model predicts a score where lower means a better finish, so rankers return the negative of their
-relevance score.
+Every factory takes the settings that can be tuned (see ml/tuning.py) as keyword arguments. The
+defaults are the hand-set values from Milestone 4: conservative (shallow trees, strong
+regularisation, about 3,000 training rows). They were chosen with the Milestone 4 seasons in view
+and one, the LambdaRank label gain, was changed after the exponential default underperformed there.
+Tuned values live in `ml/models/tuned_params.json`, were chosen on DEVELOPMENT seasons only, and
+every trial is logged in `ml/models/tuning_log.csv`.
+
+Each model predicts a score where lower means a better finish, so rankers return the negative of
+their relevance score.
 """
 
 import numpy as np
@@ -26,49 +29,67 @@ def _imputer() -> SimpleImputer:
     return SimpleImputer(strategy="median", keep_empty_features=True)
 
 
-def ridge() -> Pipeline:
+def ridge(alpha: float = 30.0) -> Pipeline:
     return Pipeline(
-        [("impute", _imputer()), ("scale", StandardScaler()), ("model", Ridge(alpha=30.0))]
+        [("impute", _imputer()), ("scale", StandardScaler()), ("model", Ridge(alpha=alpha))]
     )
 
 
-def random_forest() -> Pipeline:
+def random_forest(
+    max_depth: int = 8,
+    min_samples_leaf: int = 15,
+    n_estimators: int = 200,
+    max_features: float = 0.5,
+) -> Pipeline:
     forest = RandomForestRegressor(
-        n_estimators=200,
-        max_depth=8,
-        min_samples_leaf=15,
-        max_features=0.5,
+        n_estimators=n_estimators,
+        max_depth=max_depth,
+        min_samples_leaf=min_samples_leaf,
+        max_features=max_features,
         n_jobs=-1,
         random_state=SEED,
     )
     return Pipeline([("impute", _imputer()), ("model", forest)])
 
 
-def lightgbm() -> LGBMRegressor:
+def lightgbm(
+    num_leaves: int = 8,
+    max_depth: int = 4,
+    n_estimators: int = 250,
+    learning_rate: float = 0.03,
+    min_child_samples: int = 30,
+    reg_lambda: float = 5.0,
+) -> LGBMRegressor:
     return LGBMRegressor(
-        n_estimators=250,
-        learning_rate=0.03,
-        num_leaves=8,
-        max_depth=4,
-        min_child_samples=30,
+        n_estimators=n_estimators,
+        learning_rate=learning_rate,
+        num_leaves=num_leaves,
+        max_depth=max_depth,
+        min_child_samples=min_child_samples,
         subsample=0.8,
         subsample_freq=1,
         colsample_bytree=0.8,
-        reg_lambda=5.0,
+        reg_lambda=reg_lambda,
         random_state=SEED,
         verbose=-1,
     )
 
 
-def xgboost() -> XGBRegressor:
+def xgboost(
+    max_depth: int = 3,
+    n_estimators: int = 250,
+    learning_rate: float = 0.03,
+    min_child_weight: float = 10,
+    reg_lambda: float = 5.0,
+) -> XGBRegressor:
     return XGBRegressor(
-        n_estimators=250,
-        learning_rate=0.03,
-        max_depth=3,
-        min_child_weight=10,
+        n_estimators=n_estimators,
+        learning_rate=learning_rate,
+        max_depth=max_depth,
+        min_child_weight=min_child_weight,
         subsample=0.8,
         colsample_bytree=0.8,
-        reg_lambda=5.0,
+        reg_lambda=reg_lambda,
         random_state=SEED,
         n_jobs=1,
     )
@@ -84,22 +105,30 @@ class LightGBMRankAdapter:
 
     needs_groups = True
 
-    def __init__(self):
+    def __init__(
+        self,
+        num_leaves: int = 8,
+        max_depth: int = 4,
+        n_estimators: int = 200,
+        learning_rate: float = 0.03,
+        min_child_samples: int = 30,
+        reg_lambda: float = 5.0,
+    ):
         self.model = LGBMRanker(
             objective="lambdarank",
             # LightGBM's default gain is exponential (2^relevance - 1), which makes the loss care
             # almost only about the top few places. Whole-order accuracy wants a linear gain.
             # (Changed after the exponential default was seen to underperform on the test seasons.)
             label_gain=list(range(32)),
-            n_estimators=200,
-            learning_rate=0.03,
-            num_leaves=8,
-            max_depth=4,
-            min_child_samples=30,
+            n_estimators=n_estimators,
+            learning_rate=learning_rate,
+            num_leaves=num_leaves,
+            max_depth=max_depth,
+            min_child_samples=min_child_samples,
             subsample=0.8,
             subsample_freq=1,
             colsample_bytree=0.8,
-            reg_lambda=5.0,
+            reg_lambda=reg_lambda,
             random_state=SEED,
             verbose=-1,
         )
@@ -116,16 +145,23 @@ class XGBoostRankAdapter:
 
     needs_groups = True
 
-    def __init__(self):
+    def __init__(
+        self,
+        max_depth: int = 3,
+        n_estimators: int = 200,
+        learning_rate: float = 0.05,
+        min_child_weight: float = 5,
+        reg_lambda: float = 5.0,
+    ):
         self.model = XGBRanker(
             objective="rank:pairwise",
-            n_estimators=200,
-            learning_rate=0.05,
-            max_depth=3,
-            min_child_weight=5,
+            n_estimators=n_estimators,
+            learning_rate=learning_rate,
+            max_depth=max_depth,
+            min_child_weight=min_child_weight,
             subsample=0.8,
             colsample_bytree=0.8,
-            reg_lambda=5.0,
+            reg_lambda=reg_lambda,
             random_state=SEED,
             n_jobs=1,
         )

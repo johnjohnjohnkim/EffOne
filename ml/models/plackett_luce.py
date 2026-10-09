@@ -38,13 +38,19 @@ class PlackettLuceModel:
         target: str = "y_finish",
         include_scenario: bool = False,
         with_grid: bool = True,
+        with_practice: bool = False,
         l2: float = 1.0,
+        recency: int | None = None,
     ):
         self.name = name
         self.target = target
         self.l2 = l2
         self.include_scenario = include_scenario
-        self.builders, self.columns = feature_plan(target, include_scenario, with_grid)
+        self.with_practice = with_practice
+        self.recency = recency
+        self.builders, self.columns = feature_plan(
+            target, include_scenario, with_grid, with_practice, recency
+        )
         self._table = table
         self._prep: Pipeline | None = None
         self.weights: np.ndarray | None = None
@@ -57,7 +63,14 @@ class PlackettLuceModel:
         )
         if races == self._fitted_on:
             return
-        races, frame = training_rows(self._table, train, self.target, self.include_scenario)
+        races, frame = training_rows(
+            self._table,
+            train,
+            self.target,
+            self.include_scenario,
+            self.with_practice,
+            self.recency is not None,
+        )
         self._prep = Pipeline(
             [
                 ("impute", SimpleImputer(strategy="median", keep_empty_features=True)),

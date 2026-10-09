@@ -28,6 +28,7 @@ from ml.features.builders import (
 )
 from ml.features.lineage import TEAM_LINEAGE, team_key
 from ml.features.tables import WEATHER_COLUMNS
+from ml.features.weekend import PQ_COLUMNS
 from tests.helpers import DRIVERS, OUTCOME_COLUMNS, make_rows, row, scramble
 
 KEYS = [(2022, 1), (2022, 3), (2023, 1), (2023, 3), (2023, 5)]
@@ -195,6 +196,7 @@ def test_features_for_a_future_race_come_from_the_entry_list_alone():
                 "TeamKey": rows.loc[rows["DriverId"] == d, "TeamKey"].iloc[0],
                 "CircuitId": "c0",
                 **dict.fromkeys(WEATHER_COLUMNS, 15.0),
+                **dict.fromkeys(PQ_COLUMNS, 1.0),
                 "GridPosition": float(i + 1),
             }
             for i, d in enumerate(DRIVERS)
@@ -231,8 +233,10 @@ def test_a_pre_qualifying_prediction_needs_no_grid_and_no_weather():
 def test_missing_entry_columns_are_reported_by_builder_name():
     rows = make_rows()
     entries = rows[(rows["Year"] == 2023) & (rows["Round"] == 5)][KEY_COLUMNS]
-    with pytest.raises(KeyError, match="weather"):
+    with pytest.raises(KeyError, match="weekend_pace"):  # the first builder whose inputs are absent
         features_for_entry(rows, entries, (2023, 5), BUILDERS)
+    with pytest.raises(KeyError, match="weather"):
+        features_for_entry(rows, entries, (2023, 5), [Weather()])
 
 
 # ---- which features may predict which target -----------------------------------------------

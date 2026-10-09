@@ -1,0 +1,179 @@
+timestamp,target,model,params,dev_spearman,dev_races,dev_seasons,seconds,chosen
+2026-10-08T18:33:42+00:00,quali,ridge,"{""alpha"": 300}",0.787546,60,2019 2020 2021,1.6,False
+2026-10-08T18:33:44+00:00,quali,ridge,"{""alpha"": 100}",0.788562,60,2019 2020 2021,1.6,False
+2026-10-08T18:33:45+00:00,quali,ridge,"{""alpha"": 30}",0.789235,60,2019 2020 2021,1.6,True
+2026-10-08T18:33:47+00:00,quali,ridge,"{""alpha"": 10}",0.78824,60,2019 2020 2021,1.6,False
+2026-10-08T18:33:48+00:00,quali,ridge,"{""alpha"": 3}",0.787599,60,2019 2020 2021,1.6,False
+2026-10-08T18:33:52+00:00,quali,random_forest,"{""max_depth"": 4, ""min_samples_leaf"": 40}",0.784542,60,2019 2020 2021,3.3,True
+2026-10-08T18:33:55+00:00,quali,random_forest,"{""max_depth"": 4, ""min_samples_leaf"": 20}",0.782166,60,2019 2020 2021,3.3,False
+2026-10-08T18:33:58+00:00,quali,random_forest,"{""max_depth"": 4, ""min_samples_leaf"": 10}",0.782358,60,2019 2020 2021,3.3,False
+2026-10-08T18:34:01+00:00,quali,random_forest,"{""max_depth"": 6, ""min_samples_leaf"": 40}",0.783878,60,2019 2020 2021,3.2,False
+2026-10-08T18:34:05+00:00,quali,random_forest,"{""max_depth"": 6, ""min_samples_leaf"": 20}",0.783471,60,2019 2020 2021,3.4,False
+2026-10-08T18:34:08+00:00,quali,random_forest,"{""max_depth"": 6, ""min_samples_leaf"": 10}",0.783776,60,2019 2020 2021,3.4,False
+2026-10-08T18:34:12+00:00,quali,random_forest,"{""max_depth"": 8, ""min_samples_leaf"": 40}",0.784204,60,2019 2020 2021,3.4,False
+2026-10-08T18:34:15+00:00,quali,random_forest,"{""max_depth"": 8, ""min_samples_leaf"": 20}",0.7834,60,2019 2020 2021,3.3,False
+2026-10-08T18:34:18+00:00,quali,random_forest,"{""max_depth"": 8, ""min_samples_leaf"": 10}",0.781763,60,2019 2020 2021,3.3,False
+2026-10-08T18:34:20+00:00,quali,lightgbm,"{""min_child_samples"": 40, ""n_estimators"": 150, ""num_leaves"": 4}",0.781222,60,2019 2020 2021,1.6,True
+2026-10-08T18:34:21+00:00,quali,lightgbm,"{""min_child_samples"": 20, ""n_estimators"": 150, ""num_leaves"": 4}",0.778221,60,2019 2020 2021,1.6,False
+2026-10-08T18:34:23+00:00,quali,lightgbm,"{""min_child_samples"": 40, ""n_estimators"": 300, ""num_leaves"": 4}",0.775494,60,2019 2020 2021,1.7,False
+2026-10-08T18:34:25+00:00,quali,lightgbm,"{""min_child_samples"": 20, ""n_estimators"": 300, ""num_leaves"": 4}",0.772179,60,2019 2020 2021,1.7,False
+2026-10-08T18:34:26+00:00,quali,lightgbm,"{""min_child_samples"": 40, ""n_estimators"": 150, ""num_leaves"": 8}",0.779546,60,2019 2020 2021,1.6,False
+2026-10-08T18:34:28+00:00,quali,lightgbm,"{""min_child_samples"": 20, ""n_estimators"": 150, ""num_leaves"": 8}",0.774751,60,2019 2020 2021,1.7,False
+2026-10-08T18:34:30+00:00,quali,lightgbm,"{""min_child_samples"": 40, ""n_estimators"": 300, ""num_leaves"": 8}",0.771298,60,2019 2020 2021,1.7,False
+2026-10-08T18:34:31+00:00,quali,lightgbm,"{""min_child_samples"": 20, ""n_estimators"": 300, ""num_leaves"": 8}",0.769169,60,2019 2020 2021,1.7,False
+2026-10-08T18:34:33+00:00,quali,xgboost,"{""max_depth"": 2, ""min_child_weight"": 15, ""n_estimators"": 150}",0.777447,60,2019 2020 2021,1.8,True
+2026-10-08T18:34:35+00:00,quali,xgboost,"{""max_depth"": 2, ""min_child_weight"": 5, ""n_estimators"": 150}",0.777186,60,2019 2020 2021,1.7,False
+2026-10-08T18:34:37+00:00,quali,xgboost,"{""max_depth"": 2, ""min_child_weight"": 15, ""n_estimators"": 300}",0.770784,60,2019 2020 2021,1.7,False
+2026-10-08T18:34:38+00:00,quali,xgboost,"{""max_depth"": 2, ""min_child_weight"": 5, ""n_estimators"": 300}",0.769852,60,2019 2020 2021,1.7,False
+2026-10-08T18:34:40+00:00,quali,xgboost,"{""max_depth"": 3, ""min_child_weight"": 15, ""n_estimators"": 150}",0.772976,60,2019 2020 2021,1.7,False
+2026-10-08T18:34:42+00:00,quali,xgboost,"{""max_depth"": 3, ""min_child_weight"": 5, ""n_estimators"": 150}",0.767329,60,2019 2020 2021,1.7,False
+2026-10-08T18:34:44+00:00,quali,xgboost,"{""max_depth"": 3, ""min_child_weight"": 15, ""n_estimators"": 300}",0.767365,60,2019 2020 2021,1.8,False
+2026-10-08T18:34:45+00:00,quali,xgboost,"{""max_depth"": 3, ""min_child_weight"": 5, ""n_estimators"": 300}",0.756416,60,2019 2020 2021,1.8,False
+2026-10-08T18:34:47+00:00,quali,xgboost,"{""max_depth"": 4, ""min_child_weight"": 15, ""n_estimators"": 150}",0.775959,60,2019 2020 2021,1.7,False
+2026-10-08T18:34:49+00:00,quali,xgboost,"{""max_depth"": 4, ""min_child_weight"": 5, ""n_estimators"": 150}",0.761316,60,2019 2020 2021,1.7,False
+2026-10-08T18:34:51+00:00,quali,xgboost,"{""max_depth"": 4, ""min_child_weight"": 15, ""n_estimators"": 300}",0.76553,60,2019 2020 2021,1.9,False
+2026-10-08T18:34:53+00:00,quali,xgboost,"{""max_depth"": 4, ""min_child_weight"": 5, ""n_estimators"": 300}",0.743383,60,2019 2020 2021,1.9,False
+2026-10-08T18:34:54+00:00,quali,lightgbm_lambdarank,"{""n_estimators"": 100, ""num_leaves"": 4}",0.777784,60,2019 2020 2021,1.7,False
+2026-10-08T18:34:56+00:00,quali,lightgbm_lambdarank,"{""n_estimators"": 250, ""num_leaves"": 4}",0.780919,60,2019 2020 2021,1.8,True
+2026-10-08T18:34:58+00:00,quali,lightgbm_lambdarank,"{""n_estimators"": 100, ""num_leaves"": 8}",0.778317,60,2019 2020 2021,1.6,False
+2026-10-08T18:34:59+00:00,quali,lightgbm_lambdarank,"{""n_estimators"": 250, ""num_leaves"": 8}",0.775827,60,2019 2020 2021,1.7,False
+2026-10-08T18:35:01+00:00,quali,xgboost_rank,"{""max_depth"": 2, ""n_estimators"": 100}",0.779342,60,2019 2020 2021,1.7,True
+2026-10-08T18:35:03+00:00,quali,xgboost_rank,"{""max_depth"": 2, ""n_estimators"": 250}",0.774101,60,2019 2020 2021,1.8,False
+2026-10-08T18:35:04+00:00,quali,xgboost_rank,"{""max_depth"": 3, ""n_estimators"": 100}",0.776163,60,2019 2020 2021,1.7,False
+2026-10-08T18:35:06+00:00,quali,xgboost_rank,"{""max_depth"": 3, ""n_estimators"": 250}",0.770266,60,2019 2020 2021,1.9,False
+2026-10-08T18:35:07+00:00,quali,elo,"{""k_driver"": 15, ""k_team"": 25, ""season_shrink"": 0.9}",0.765054,60,2019 2020 2021,0.6,False
+2026-10-08T18:35:07+00:00,quali,elo,"{""k_driver"": 15, ""k_team"": 25, ""season_shrink"": 0.75}",0.771888,60,2019 2020 2021,0.6,False
+2026-10-08T18:35:08+00:00,quali,elo,"{""k_driver"": 15, ""k_team"": 25, ""season_shrink"": 0.5}",0.78351,60,2019 2020 2021,0.5,False
+2026-10-08T18:35:08+00:00,quali,elo,"{""k_driver"": 15, ""k_team"": 50, ""season_shrink"": 0.9}",0.77581,60,2019 2020 2021,0.5,False
+2026-10-08T18:35:09+00:00,quali,elo,"{""k_driver"": 15, ""k_team"": 50, ""season_shrink"": 0.75}",0.780631,60,2019 2020 2021,0.6,False
+2026-10-08T18:35:10+00:00,quali,elo,"{""k_driver"": 15, ""k_team"": 50, ""season_shrink"": 0.5}",0.787848,60,2019 2020 2021,0.6,False
+2026-10-08T18:35:10+00:00,quali,elo,"{""k_driver"": 15, ""k_team"": 100, ""season_shrink"": 0.9}",0.781924,60,2019 2020 2021,0.6,False
+2026-10-08T18:35:11+00:00,quali,elo,"{""k_driver"": 15, ""k_team"": 100, ""season_shrink"": 0.75}",0.788733,60,2019 2020 2021,0.6,False
+2026-10-08T18:35:11+00:00,quali,elo,"{""k_driver"": 15, ""k_team"": 100, ""season_shrink"": 0.5}",0.795261,60,2019 2020 2021,0.6,False
+2026-10-08T18:35:12+00:00,quali,elo,"{""k_driver"": 30, ""k_team"": 25, ""season_shrink"": 0.9}",0.774259,60,2019 2020 2021,0.6,False
+2026-10-08T18:35:12+00:00,quali,elo,"{""k_driver"": 30, ""k_team"": 25, ""season_shrink"": 0.75}",0.781658,60,2019 2020 2021,0.6,False
+2026-10-08T18:35:13+00:00,quali,elo,"{""k_driver"": 30, ""k_team"": 25, ""season_shrink"": 0.5}",0.791054,60,2019 2020 2021,0.5,False
+2026-10-08T18:35:13+00:00,quali,elo,"{""k_driver"": 30, ""k_team"": 50, ""season_shrink"": 0.9}",0.783133,60,2019 2020 2021,0.6,False
+2026-10-08T18:35:14+00:00,quali,elo,"{""k_driver"": 30, ""k_team"": 50, ""season_shrink"": 0.75}",0.786322,60,2019 2020 2021,0.5,False
+2026-10-08T18:35:15+00:00,quali,elo,"{""k_driver"": 30, ""k_team"": 50, ""season_shrink"": 0.5}",0.794218,60,2019 2020 2021,0.5,False
+2026-10-08T18:35:15+00:00,quali,elo,"{""k_driver"": 30, ""k_team"": 100, ""season_shrink"": 0.9}",0.789661,60,2019 2020 2021,0.5,False
+2026-10-08T18:35:16+00:00,quali,elo,"{""k_driver"": 30, ""k_team"": 100, ""season_shrink"": 0.75}",0.793639,60,2019 2020 2021,0.6,False
+2026-10-08T18:35:16+00:00,quali,elo,"{""k_driver"": 30, ""k_team"": 100, ""season_shrink"": 0.5}",0.797741,60,2019 2020 2021,0.5,False
+2026-10-08T18:35:17+00:00,quali,elo,"{""k_driver"": 60, ""k_team"": 25, ""season_shrink"": 0.9}",0.780326,60,2019 2020 2021,0.6,False
+2026-10-08T18:35:17+00:00,quali,elo,"{""k_driver"": 60, ""k_team"": 25, ""season_shrink"": 0.75}",0.783839,60,2019 2020 2021,0.5,False
+2026-10-08T18:35:18+00:00,quali,elo,"{""k_driver"": 60, ""k_team"": 25, ""season_shrink"": 0.5}",0.786869,60,2019 2020 2021,0.6,False
+2026-10-08T18:35:18+00:00,quali,elo,"{""k_driver"": 60, ""k_team"": 50, ""season_shrink"": 0.9}",0.789875,60,2019 2020 2021,0.5,False
+2026-10-08T18:35:19+00:00,quali,elo,"{""k_driver"": 60, ""k_team"": 50, ""season_shrink"": 0.75}",0.792412,60,2019 2020 2021,0.6,False
+2026-10-08T18:35:20+00:00,quali,elo,"{""k_driver"": 60, ""k_team"": 50, ""season_shrink"": 0.5}",0.795354,60,2019 2020 2021,0.5,False
+2026-10-08T18:35:20+00:00,quali,elo,"{""k_driver"": 60, ""k_team"": 100, ""season_shrink"": 0.9}",0.794832,60,2019 2020 2021,0.6,False
+2026-10-08T18:35:21+00:00,quali,elo,"{""k_driver"": 60, ""k_team"": 100, ""season_shrink"": 0.75}",0.797648,60,2019 2020 2021,0.5,False
+2026-10-08T18:35:21+00:00,quali,elo,"{""k_driver"": 60, ""k_team"": 100, ""season_shrink"": 0.5}",0.798884,60,2019 2020 2021,0.5,True
+2026-10-08T18:35:23+00:00,quali,plackett_luce,"{""l2"": 10}",0.788134,60,2019 2020 2021,1.6,True
+2026-10-08T18:35:24+00:00,quali,plackett_luce,"{""l2"": 3}",0.784926,60,2019 2020 2021,1.7,False
+2026-10-08T18:35:26+00:00,quali,plackett_luce,"{""l2"": 1}",0.782725,60,2019 2020 2021,1.7,False
+2026-10-08T18:35:28+00:00,quali,plackett_luce,"{""l2"": 0.3}",0.780735,60,2019 2020 2021,1.7,False
+2026-10-08T18:35:29+00:00,race,ridge,"{""alpha"": 300}",0.651612,60,2019 2020 2021,1.6,True
+2026-10-08T18:35:31+00:00,race,ridge,"{""alpha"": 100}",0.651537,60,2019 2020 2021,1.7,False
+2026-10-08T18:35:33+00:00,race,ridge,"{""alpha"": 30}",0.648379,60,2019 2020 2021,1.7,False
+2026-10-08T18:35:34+00:00,race,ridge,"{""alpha"": 10}",0.644294,60,2019 2020 2021,1.6,False
+2026-10-08T18:35:36+00:00,race,ridge,"{""alpha"": 3}",0.640359,60,2019 2020 2021,1.6,False
+2026-10-08T18:35:39+00:00,race,random_forest,"{""max_depth"": 4, ""min_samples_leaf"": 40}",0.653696,60,2019 2020 2021,3.3,False
+2026-10-08T18:35:43+00:00,race,random_forest,"{""max_depth"": 4, ""min_samples_leaf"": 20}",0.654927,60,2019 2020 2021,3.5,True
+2026-10-08T18:35:46+00:00,race,random_forest,"{""max_depth"": 4, ""min_samples_leaf"": 10}",0.652916,60,2019 2020 2021,3.5,False
+2026-10-08T18:35:50+00:00,race,random_forest,"{""max_depth"": 6, ""min_samples_leaf"": 40}",0.654699,60,2019 2020 2021,3.4,False
+2026-10-08T18:35:53+00:00,race,random_forest,"{""max_depth"": 6, ""min_samples_leaf"": 20}",0.654367,60,2019 2020 2021,3.4,False
+2026-10-08T18:35:57+00:00,race,random_forest,"{""max_depth"": 6, ""min_samples_leaf"": 10}",0.653584,60,2019 2020 2021,3.4,False
+2026-10-08T18:36:00+00:00,race,random_forest,"{""max_depth"": 8, ""min_samples_leaf"": 40}",0.654423,60,2019 2020 2021,3.4,False
+2026-10-08T18:36:03+00:00,race,random_forest,"{""max_depth"": 8, ""min_samples_leaf"": 20}",0.654442,60,2019 2020 2021,3.4,False
+2026-10-08T18:36:07+00:00,race,random_forest,"{""max_depth"": 8, ""min_samples_leaf"": 10}",0.653948,60,2019 2020 2021,3.4,False
+2026-10-08T18:36:09+00:00,race,lightgbm,"{""min_child_samples"": 40, ""n_estimators"": 150, ""num_leaves"": 4}",0.645705,60,2019 2020 2021,1.7,True
+2026-10-08T18:36:10+00:00,race,lightgbm,"{""min_child_samples"": 20, ""n_estimators"": 150, ""num_leaves"": 4}",0.645262,60,2019 2020 2021,1.7,False
+2026-10-08T18:36:12+00:00,race,lightgbm,"{""min_child_samples"": 40, ""n_estimators"": 300, ""num_leaves"": 4}",0.640697,60,2019 2020 2021,1.7,False
+2026-10-08T18:36:14+00:00,race,lightgbm,"{""min_child_samples"": 20, ""n_estimators"": 300, ""num_leaves"": 4}",0.629962,60,2019 2020 2021,1.8,False
+2026-10-08T18:36:16+00:00,race,lightgbm,"{""min_child_samples"": 40, ""n_estimators"": 150, ""num_leaves"": 8}",0.643638,60,2019 2020 2021,1.8,False
+2026-10-08T18:36:17+00:00,race,lightgbm,"{""min_child_samples"": 20, ""n_estimators"": 150, ""num_leaves"": 8}",0.635735,60,2019 2020 2021,1.7,False
+2026-10-08T18:36:19+00:00,race,lightgbm,"{""min_child_samples"": 40, ""n_estimators"": 300, ""num_leaves"": 8}",0.631693,60,2019 2020 2021,1.8,False
+2026-10-08T18:36:21+00:00,race,lightgbm,"{""min_child_samples"": 20, ""n_estimators"": 300, ""num_leaves"": 8}",0.610459,60,2019 2020 2021,1.8,False
+2026-10-08T18:36:23+00:00,race,xgboost,"{""max_depth"": 2, ""min_child_weight"": 15, ""n_estimators"": 150}",0.64231,60,2019 2020 2021,1.7,True
+2026-10-08T18:36:24+00:00,race,xgboost,"{""max_depth"": 2, ""min_child_weight"": 5, ""n_estimators"": 150}",0.638548,60,2019 2020 2021,1.8,False
+2026-10-08T18:36:26+00:00,race,xgboost,"{""max_depth"": 2, ""min_child_weight"": 15, ""n_estimators"": 300}",0.626612,60,2019 2020 2021,1.8,False
+2026-10-08T18:36:28+00:00,race,xgboost,"{""max_depth"": 2, ""min_child_weight"": 5, ""n_estimators"": 300}",0.628818,60,2019 2020 2021,1.8,False
+2026-10-08T18:36:30+00:00,race,xgboost,"{""max_depth"": 3, ""min_child_weight"": 15, ""n_estimators"": 150}",0.634491,60,2019 2020 2021,1.8,False
+2026-10-08T18:36:31+00:00,race,xgboost,"{""max_depth"": 3, ""min_child_weight"": 5, ""n_estimators"": 150}",0.624104,60,2019 2020 2021,1.8,False
+2026-10-08T18:36:33+00:00,race,xgboost,"{""max_depth"": 3, ""min_child_weight"": 15, ""n_estimators"": 300}",0.614189,60,2019 2020 2021,1.9,False
+2026-10-08T18:36:35+00:00,race,xgboost,"{""max_depth"": 3, ""min_child_weight"": 5, ""n_estimators"": 300}",0.607009,60,2019 2020 2021,1.9,False
+2026-10-08T18:36:37+00:00,race,xgboost,"{""max_depth"": 4, ""min_child_weight"": 15, ""n_estimators"": 150}",0.625017,60,2019 2020 2021,1.8,False
+2026-10-08T18:36:39+00:00,race,xgboost,"{""max_depth"": 4, ""min_child_weight"": 5, ""n_estimators"": 150}",0.598253,60,2019 2020 2021,1.9,False
+2026-10-08T18:36:41+00:00,race,xgboost,"{""max_depth"": 4, ""min_child_weight"": 15, ""n_estimators"": 300}",0.593768,60,2019 2020 2021,2.0,False
+2026-10-08T18:36:43+00:00,race,xgboost,"{""max_depth"": 4, ""min_child_weight"": 5, ""n_estimators"": 300}",0.578262,60,2019 2020 2021,2.1,False
+2026-10-08T18:36:45+00:00,race,lightgbm_lambdarank,"{""n_estimators"": 100, ""num_leaves"": 4}",0.641207,60,2019 2020 2021,1.8,True
+2026-10-08T18:36:47+00:00,race,lightgbm_lambdarank,"{""n_estimators"": 250, ""num_leaves"": 4}",0.639729,60,2019 2020 2021,1.8,False
+2026-10-08T18:36:48+00:00,race,lightgbm_lambdarank,"{""n_estimators"": 100, ""num_leaves"": 8}",0.638886,60,2019 2020 2021,1.8,False
+2026-10-08T18:36:50+00:00,race,lightgbm_lambdarank,"{""n_estimators"": 250, ""num_leaves"": 8}",0.635247,60,2019 2020 2021,1.8,False
+2026-10-08T18:36:52+00:00,race,xgboost_rank,"{""max_depth"": 2, ""n_estimators"": 100}",0.639679,60,2019 2020 2021,1.7,True
+2026-10-08T18:36:54+00:00,race,xgboost_rank,"{""max_depth"": 2, ""n_estimators"": 250}",0.620961,60,2019 2020 2021,2.0,False
+2026-10-08T18:36:56+00:00,race,xgboost_rank,"{""max_depth"": 3, ""n_estimators"": 100}",0.600982,60,2019 2020 2021,1.8,False
+2026-10-08T18:36:58+00:00,race,xgboost_rank,"{""max_depth"": 3, ""n_estimators"": 250}",0.578668,60,2019 2020 2021,2.0,False
+2026-10-08T18:36:58+00:00,race,elo,"{""k_driver"": 15, ""k_team"": 25, ""season_shrink"": 0.9}",0.604249,60,2019 2020 2021,0.6,False
+2026-10-08T18:36:59+00:00,race,elo,"{""k_driver"": 15, ""k_team"": 25, ""season_shrink"": 0.75}",0.605026,60,2019 2020 2021,0.6,False
+2026-10-08T18:36:59+00:00,race,elo,"{""k_driver"": 15, ""k_team"": 25, ""season_shrink"": 0.5}",0.604316,60,2019 2020 2021,0.5,False
+2026-10-08T18:37:00+00:00,race,elo,"{""k_driver"": 15, ""k_team"": 50, ""season_shrink"": 0.9}",0.605102,60,2019 2020 2021,0.5,False
+2026-10-08T18:37:00+00:00,race,elo,"{""k_driver"": 15, ""k_team"": 50, ""season_shrink"": 0.75}",0.604266,60,2019 2020 2021,0.5,False
+2026-10-08T18:37:01+00:00,race,elo,"{""k_driver"": 15, ""k_team"": 50, ""season_shrink"": 0.5}",0.603289,60,2019 2020 2021,0.5,False
+2026-10-08T18:37:01+00:00,race,elo,"{""k_driver"": 15, ""k_team"": 100, ""season_shrink"": 0.9}",0.602963,60,2019 2020 2021,0.5,False
+2026-10-08T18:37:02+00:00,race,elo,"{""k_driver"": 15, ""k_team"": 100, ""season_shrink"": 0.75}",0.602411,60,2019 2020 2021,0.5,False
+2026-10-08T18:37:02+00:00,race,elo,"{""k_driver"": 15, ""k_team"": 100, ""season_shrink"": 0.5}",0.600481,60,2019 2020 2021,0.5,False
+2026-10-08T18:37:03+00:00,race,elo,"{""k_driver"": 30, ""k_team"": 25, ""season_shrink"": 0.9}",0.604252,60,2019 2020 2021,0.6,False
+2026-10-08T18:37:04+00:00,race,elo,"{""k_driver"": 30, ""k_team"": 25, ""season_shrink"": 0.75}",0.600242,60,2019 2020 2021,0.5,False
+2026-10-08T18:37:04+00:00,race,elo,"{""k_driver"": 30, ""k_team"": 25, ""season_shrink"": 0.5}",0.605217,60,2019 2020 2021,0.5,False
+2026-10-08T18:37:05+00:00,race,elo,"{""k_driver"": 30, ""k_team"": 50, ""season_shrink"": 0.9}",0.605343,60,2019 2020 2021,0.6,True
+2026-10-08T18:37:05+00:00,race,elo,"{""k_driver"": 30, ""k_team"": 50, ""season_shrink"": 0.75}",0.603764,60,2019 2020 2021,0.6,False
+2026-10-08T18:37:06+00:00,race,elo,"{""k_driver"": 30, ""k_team"": 50, ""season_shrink"": 0.5}",0.605013,60,2019 2020 2021,0.5,False
+2026-10-08T18:37:06+00:00,race,elo,"{""k_driver"": 30, ""k_team"": 100, ""season_shrink"": 0.9}",0.603543,60,2019 2020 2021,0.5,False
+2026-10-08T18:37:07+00:00,race,elo,"{""k_driver"": 30, ""k_team"": 100, ""season_shrink"": 0.75}",0.603196,60,2019 2020 2021,0.6,False
+2026-10-08T18:37:07+00:00,race,elo,"{""k_driver"": 30, ""k_team"": 100, ""season_shrink"": 0.5}",0.60178,60,2019 2020 2021,0.6,False
+2026-10-08T18:37:08+00:00,race,elo,"{""k_driver"": 60, ""k_team"": 25, ""season_shrink"": 0.9}",0.602095,60,2019 2020 2021,0.6,False
+2026-10-08T18:37:09+00:00,race,elo,"{""k_driver"": 60, ""k_team"": 25, ""season_shrink"": 0.75}",0.602233,60,2019 2020 2021,0.6,False
+2026-10-08T18:37:09+00:00,race,elo,"{""k_driver"": 60, ""k_team"": 25, ""season_shrink"": 0.5}",0.602709,60,2019 2020 2021,0.6,False
+2026-10-08T18:37:10+00:00,race,elo,"{""k_driver"": 60, ""k_team"": 50, ""season_shrink"": 0.9}",0.603512,60,2019 2020 2021,0.6,False
+2026-10-08T18:37:10+00:00,race,elo,"{""k_driver"": 60, ""k_team"": 50, ""season_shrink"": 0.75}",0.603612,60,2019 2020 2021,0.6,False
+2026-10-08T18:37:11+00:00,race,elo,"{""k_driver"": 60, ""k_team"": 50, ""season_shrink"": 0.5}",0.60053,60,2019 2020 2021,0.5,False
+2026-10-08T18:37:11+00:00,race,elo,"{""k_driver"": 60, ""k_team"": 100, ""season_shrink"": 0.9}",0.602765,60,2019 2020 2021,0.5,False
+2026-10-08T18:37:12+00:00,race,elo,"{""k_driver"": 60, ""k_team"": 100, ""season_shrink"": 0.75}",0.601788,60,2019 2020 2021,0.6,False
+2026-10-08T18:37:12+00:00,race,elo,"{""k_driver"": 60, ""k_team"": 100, ""season_shrink"": 0.5}",0.598855,60,2019 2020 2021,0.6,False
+2026-10-08T18:37:14+00:00,race,plackett_luce,"{""l2"": 10}",0.624758,60,2019 2020 2021,1.7,True
+2026-10-08T18:37:16+00:00,race,plackett_luce,"{""l2"": 3}",0.608079,60,2019 2020 2021,1.8,False
+2026-10-08T18:37:18+00:00,race,plackett_luce,"{""l2"": 1}",0.599904,60,2019 2020 2021,1.7,False
+2026-10-08T18:37:19+00:00,race,plackett_luce,"{""l2"": 0.3}",0.594169,60,2019 2020 2021,1.7,False
+2026-10-09T03:35:55+00:00,quali_features,ridge,"{""gap_target"": false, ""recency"": null}",0.789235,60,2019 2020 2021,1.6,False
+2026-10-09T03:35:57+00:00,quali_features,ridge,"{""gap_target"": false, ""recency"": 2}",0.788095,60,2019 2020 2021,2.3,False
+2026-10-09T03:35:59+00:00,quali_features,ridge,"{""gap_target"": false, ""recency"": 4}",0.787648,60,2019 2020 2021,2.2,False
+2026-10-09T03:36:02+00:00,quali_features,ridge,"{""gap_target"": false, ""recency"": 8}",0.786929,60,2019 2020 2021,2.3,False
+2026-10-09T03:36:03+00:00,quali_features,ridge,"{""gap_target"": true, ""recency"": null}",0.793197,60,2019 2020 2021,1.6,True
+2026-10-09T03:36:06+00:00,quali_features,ridge,"{""gap_target"": true, ""recency"": 2}",0.791816,60,2019 2020 2021,2.3,False
+2026-10-09T03:36:08+00:00,quali_features,ridge,"{""gap_target"": true, ""recency"": 4}",0.790903,60,2019 2020 2021,2.4,False
+2026-10-09T03:36:10+00:00,quali_features,ridge,"{""gap_target"": true, ""recency"": 8}",0.789834,60,2019 2020 2021,2.3,False
+2026-10-09T03:36:14+00:00,quali_features,random_forest,"{""gap_target"": false, ""recency"": null}",0.784542,60,2019 2020 2021,3.5,False
+2026-10-09T03:36:18+00:00,quali_features,random_forest,"{""gap_target"": false, ""recency"": 2}",0.781164,60,2019 2020 2021,4.2,False
+2026-10-09T03:36:22+00:00,quali_features,random_forest,"{""gap_target"": false, ""recency"": 4}",0.783053,60,2019 2020 2021,4.2,False
+2026-10-09T03:36:26+00:00,quali_features,random_forest,"{""gap_target"": false, ""recency"": 8}",0.778707,60,2019 2020 2021,4.2,False
+2026-10-09T03:36:30+00:00,quali_features,random_forest,"{""gap_target"": true, ""recency"": null}",0.787743,60,2019 2020 2021,3.5,True
+2026-10-09T03:36:34+00:00,quali_features,random_forest,"{""gap_target"": true, ""recency"": 2}",0.786055,60,2019 2020 2021,4.1,False
+2026-10-09T03:36:38+00:00,quali_features,random_forest,"{""gap_target"": true, ""recency"": 4}",0.783912,60,2019 2020 2021,4.1,False
+2026-10-09T03:36:42+00:00,quali_features,random_forest,"{""gap_target"": true, ""recency"": 8}",0.78299,60,2019 2020 2021,4.1,False
+2026-10-09T03:36:44+00:00,quali_features,lightgbm,"{""gap_target"": false, ""recency"": null}",0.781222,60,2019 2020 2021,1.8,True
+2026-10-09T03:36:46+00:00,quali_features,lightgbm,"{""gap_target"": false, ""recency"": 2}",0.779466,60,2019 2020 2021,2.5,False
+2026-10-09T03:36:49+00:00,quali_features,lightgbm,"{""gap_target"": false, ""recency"": 4}",0.776645,60,2019 2020 2021,2.5,False
+2026-10-09T03:36:51+00:00,quali_features,lightgbm,"{""gap_target"": false, ""recency"": 8}",0.778506,60,2019 2020 2021,2.5,False
+2026-10-09T03:36:53+00:00,quali_features,lightgbm,"{""gap_target"": true, ""recency"": null}",0.775798,60,2019 2020 2021,1.8,False
+2026-10-09T03:36:56+00:00,quali_features,lightgbm,"{""gap_target"": true, ""recency"": 2}",0.780455,60,2019 2020 2021,2.5,False
+2026-10-09T03:36:58+00:00,quali_features,lightgbm,"{""gap_target"": true, ""recency"": 4}",0.777574,60,2019 2020 2021,2.5,False
+2026-10-09T03:37:01+00:00,quali_features,lightgbm,"{""gap_target"": true, ""recency"": 8}",0.773673,60,2019 2020 2021,2.5,False
+2026-10-09T03:37:03+00:00,quali_features,xgboost,"{""gap_target"": false, ""recency"": null}",0.777447,60,2019 2020 2021,1.8,False
+2026-10-09T03:37:05+00:00,quali_features,xgboost,"{""gap_target"": false, ""recency"": 2}",0.779875,60,2019 2020 2021,2.3,False
+2026-10-09T03:37:07+00:00,quali_features,xgboost,"{""gap_target"": false, ""recency"": 4}",0.779299,60,2019 2020 2021,2.3,False
+2026-10-09T03:37:10+00:00,quali_features,xgboost,"{""gap_target"": false, ""recency"": 8}",0.778691,60,2019 2020 2021,2.3,False
+2026-10-09T03:37:11+00:00,quali_features,xgboost,"{""gap_target"": true, ""recency"": null}",0.778098,60,2019 2020 2021,1.6,False
+2026-10-09T03:37:13+00:00,quali_features,xgboost,"{""gap_target"": true, ""recency"": 2}",0.781237,60,2019 2020 2021,2.2,True
+2026-10-09T03:37:16+00:00,quali_features,xgboost,"{""gap_target"": true, ""recency"": 4}",0.778207,60,2019 2020 2021,2.2,False
+2026-10-09T03:37:18+00:00,quali_features,xgboost,"{""gap_target"": true, ""recency"": 8}",0.773114,60,2019 2020 2021,2.3,False

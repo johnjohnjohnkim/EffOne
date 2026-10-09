@@ -1,5 +1,7 @@
 """Walk-forward evaluation of race predictors."""
 
+from collections.abc import Collection
+
 import pandas as pd
 
 from ml.evaluation.baselines import RacePredictor
@@ -15,6 +17,7 @@ def evaluate(
     min_train_years: int = 1,
     locked_season: int | None = LOCKED_SEASON,
     allow_locked: bool = False,
+    test_seasons: Collection[int] | None = None,
 ) -> pd.DataFrame:
     """Per-race metrics for every model over every walk-forward test season.
 
@@ -25,12 +28,14 @@ def evaluate(
     A model is handed the FULL entry list of each race, including drivers whose outcome is unknown
     (they were entered), so the field a model sees is never chosen by the result. Only drivers with
     a known outcome are scored.
+
+    `test_seasons` limits which seasons are scored (training still uses every earlier season).
     """
     actual_column = TARGET_COLUMNS[target]
     entry_columns = [c for c in ENTRY_COLUMNS[target] if c in results.columns]
     scored = results.dropna(subset=[actual_column])  # used only to find which seasons can be tested
     splits = walk_forward_splits(
-        sorted(scored["Year"].unique()), min_train_years, locked_season, allow_locked
+        sorted(scored["Year"].unique()), min_train_years, locked_season, allow_locked, test_seasons
     )
     rows = []
     for split in splits:

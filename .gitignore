@@ -16,3 +16,11 @@ HANDOFF.md
 AGENTS.md
 
 .claude/
+
+# Local learning journal (written by /journal, not published)
+/journal/
+
+# Local exploration notebooks (not committed for now)
+notebooks/
+*.ipynb
+.ipynb_checkpoints/

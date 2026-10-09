@@ -130,7 +130,26 @@ class MeanLast5QualiBaseline(MeanLastKBaseline):
         super().__init__("QualiPosition", "mean_last5_quali")
 
 
+class PracticeBestLapBaseline:
+    """Everyone qualifies in the order of their best practice lap (drivers with no time go last)."""
+
+    name = "practice_best_lap"
+
+    def fit(self, train: pd.DataFrame) -> None:
+        pass
+
+    def predict_race(self, history: pd.DataFrame, race: pd.DataFrame) -> pd.Series:
+        gap = race["pq_fp_best_gap"]
+        return gap.fillna(gap.max() + 1 if gap.notna().any() else 0.0)
+
+
 BASELINES_BY_TARGET = {
     "race": [GridBaseline, PreviousRaceBaseline, MeanLast5FinishBaseline],
     "quali": [PreviousQualiBaseline, PreviousRaceForQualiBaseline, MeanLast5QualiBaseline],
+    "quali_after_practice": [
+        PreviousQualiBaseline,
+        PreviousRaceForQualiBaseline,
+        MeanLast5QualiBaseline,
+        PracticeBestLapBaseline,
+    ],
 }

@@ -1,4 +1,4 @@
-"""CLI: python -m ml.evaluation [--models baselines|all] [--target ...] [--allow-locked].
+"""CLI: python -m ml.evaluation [--models baselines|all] [--target ...] [--seasons ...] [--allow-locked].
 
 Prints and saves one leaderboard per target:
 - race:                  predict the finishing order given the (real or user-supplied) grid
@@ -20,21 +20,42 @@ from ml.evaluation.compare import leaderboard
 from ml.evaluation.data import load_history
 from ml.evaluation.harness import evaluate
 from ml.evaluation.metrics import summarize
-from ml.evaluation.splits import LOCKED_SEASON
+from ml.evaluation.splits import LOCKED_SEASON, SEASON_SETS
 from ml.ingest.atomic import write_csv_atomic
 from ml.ingest.paths import data_dir
 
-TARGETS = ("race", "quali", "race_predicted_grid")
-PRIMARY_TARGETS = ("race", "quali")
+TARGETS = ("race", "quali", "quali_after_practice", "race_predicted_grid", "quali_features")
+PRIMARY_TARGETS = ("race", "quali", "quali_after_practice")
 NO_MODEL_BEATS_BASELINES = 3  # exit code: a result to discuss, not to hide
+
+
+def test_seasons(which: str, allow_locked: bool) -> tuple[int, ...] | None:
+    """The seasons to score for a --seasons choice; the locked season joins only when asked for."""
+    chosen = SEASON_SETS[which]
+    if chosen is None:
+        return None
+    return (*chosen, LOCKED_SEASON) if allow_locked and which != "dev" else chosen
 
 
 def build_models(target: str, which: str, history: pd.DataFrame) -> tuple[str, list, list[str]]:
     """(harness target, models, baseline names) for one leaderboard."""
     from ml.features.build import build_feature_table
-    from ml.models.zoo import baselines, make_models, make_predicted_grid_models
+    from ml.models.zoo import (
+        baselines,
+        make_feature_variants,
+        make_models,
+        make_predicted_grid_models,
+    )
 
-    harness_target = "quali" if target == "quali" else "race"
+    if target == "quali_features":  # 4b.3: the qualifying board plus the gap/recency variants
+        base = baselines("quali")
+        names = [b.name for b in base]
+        if which == "baselines":
+            return "quali", base, names
+        table = build_feature_table(history)
+        variants = make_feature_variants(table)
+        return "quali", [*base, *make_models("quali", table), *variants], names
+    harness_target = target if target in ("quali", "quali_after_practice") else "race"
     if target == "race_predicted_grid":
         if which == "baselines":
             return harness_target, [], []
@@ -57,6 +78,13 @@ def main() -> int:
     parser.add_argument("--target", choices=[*TARGETS, "all"], default="all")
     parser.add_argument("--n-boot", type=int, default=2000)
     parser.add_argument(
+        "--seasons",
+        choices=list(SEASON_SETS),
+        default="report",
+        help="Which test seasons to score: dev (2019-2021, where tuning happens), report "
+        "(2022-2024 and 2026, the default) or all (both). The locked season needs --allow-locked.",
+    )
+    parser.add_argument(
         "--allow-locked",
         action="store_true",
         help=f"Also evaluate the locked final test season ({LOCKED_SEASON}). Use once, after the "
@@ -72,7 +100,13 @@ def main() -> int:
         harness_target, models, baseline_names = build_models(target, args.models, history)
         if not models:
             continue
-        per_race = evaluate(models, history, harness_target, allow_locked=args.allow_locked)
+        per_race = evaluate(
+            models,
+            history,
+            harness_target,
+            allow_locked=args.allow_locked,
+            test_seasons=test_seasons(args.seasons, args.allow_locked),
+        )
         if per_race.empty:
             print(f"[{target}] not enough seasons ingested to evaluate yet.")
             status = status or 1

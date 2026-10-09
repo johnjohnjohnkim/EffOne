@@ -32,6 +32,7 @@ TARGETS = {
     "y_finish": "Position",
     "y_dnf": "dnf",
     "y_quali": "QualiPosition",
+    "y_qgap": "quali_gap_pct",  # continuous: % slower than pole; NaN with no qualifying time
     "y_grid": "GridPosition",
 }
 
@@ -39,10 +40,19 @@ TARGETS = {
 # be predicted from the grid it produces (`grid` correlates 0.96 with `y_quali` and is the same
 # thing as `y_grid`), and race-day weather is not known when qualifying is decided.
 TARGET_STAGES: dict[str, frozenset[str]] = {
-    "y_finish": frozenset({"pre_weekend", "scenario", "post_quali"}),
-    "y_dnf": frozenset({"pre_weekend", "scenario", "post_quali"}),
-    "y_quali": frozenset({"pre_weekend"}),
-    "y_grid": frozenset({"pre_weekend"}),
+    "y_finish": frozenset({"pre_weekend", "recency", "post_practice", "scenario", "post_quali"}),
+    "y_dnf": frozenset({"pre_weekend", "recency", "post_practice", "scenario", "post_quali"}),
+    "y_quali": frozenset({"pre_weekend", "recency", "post_practice"}),
+    "y_qgap": frozenset({"pre_weekend", "recency", "post_practice"}),
+    "y_grid": frozenset({"pre_weekend", "recency", "post_practice"}),
+}
+# Stages a model has to ask for: weather because history holds the realised value but a forecast is
+# all that exists when predicting; practice because it only exists once practice has been run;
+# recency because it is an experiment (4b.3) and the default boards must stay reproducible.
+OPT_IN_STAGES = {
+    "scenario": "include_scenario",
+    "post_practice": "include_practice",
+    "recency": "include_recency",
 }
 
 
@@ -149,23 +159,37 @@ def feature_columns(
     target: str = "y_finish",
     builders: list[FeatureBuilder] = BUILDERS,
     include_scenario: bool = False,
+    include_practice: bool = False,
+    include_recency: bool = False,
 ) -> list[str]:
     """Feature columns that are legitimately known when predicting `target`.
 
-    Scenario features (weather) are opt-in. In history they are the realised race-day average but
-    at prediction time they are a forecast or a user's guess, so a model trained on them looks
-    better than it will be. Report results with and without them. Qualifying and grid targets
-    never get them (race-day weather is not known when qualifying is decided).
+    Three stages are opt-in. Scenario features (weather): in history they are the realised race-day
+    average but at prediction time they are a forecast or a user's guess, so a model trained on them
+    looks better than it will be; qualifying and grid targets never get them. Practice features
+    (`post_practice`): they only exist once practice has been run, so a forecast made earlier must
+    not use them. Recency-weighted form (`recency`): known before the weekend like the rest of the
+    form, but opt-in so the earlier boards do not change. Report results with and without.
     """
     allowed = TARGET_STAGES[target]
     if include_scenario and "scenario" not in allowed:
         raise ValueError(f"{target} cannot use scenario (weather) features")
-    stages = allowed if include_scenario else allowed - {"scenario"}
+    stages = set(allowed)
+    if not include_scenario:
+        stages.discard("scenario")
+    if not include_practice:
+        stages.discard("post_practice")
+    if not include_recency:
+        stages.discard("recency")
     return [column for b in builders if b.stage in stages for column in b.columns]
 
 
 def training_frame(
-    table: pd.DataFrame, target: str, include_scenario: bool = False
+    table: pd.DataFrame,
+    target: str,
+    include_scenario: bool = False,
+    include_practice: bool = False,
+    include_recency: bool = False,
 ) -> pd.DataFrame:
     """Rows and columns that are safe to train `target` on: the rule book as a function.
 
@@ -173,6 +197,12 @@ def training_frame(
     and only the keys, the features legitimately known for that target, and the target itself (no
     other `y_*` columns, no `race_ok`). Row order (by driver id within a race) is preserved.
     """
-    columns = [*KEY_COLUMNS, *feature_columns(target, include_scenario=include_scenario), target]
+    features = feature_columns(
+        target,
+        include_scenario=include_scenario,
+        include_practice=include_practice,
+        include_recency=include_recency,
+    )
+    columns = [*KEY_COLUMNS, *features, target]
     keep = as_flags(table["race_ok"], "race_ok") & table[target].notna()
     return table.loc[keep, columns].reset_index(drop=True)
